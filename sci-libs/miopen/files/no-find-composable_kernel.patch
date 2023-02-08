@@ -1,0 +1,12 @@
+--- ./CMakeLists.txt~	2022-12-10 14:05:48.000000000 +0000
++++ ./CMakeLists.txt	2022-12-10 16:29:23.330230591 +0000
+@@ -243,9 +243,6 @@
+ 
+ # HIP
+ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+-    if(MIOPEN_USE_COMPOSABLEKERNEL)
+-        find_package(composable_kernel 1.0.0 COMPONENTS device_operations src/composable_kernel)
+-    endif()
+     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
+         set(MIOPEN_MODE_NOGPU 1)
+     endif()

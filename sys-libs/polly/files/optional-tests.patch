@@ -1,0 +1,13 @@
+--- polly/CMakeLists.txt~	2022-10-10 21:57:26.000000000 +0100
++++ polly/CMakeLists.txt	2022-10-10 22:05:01.201717070 +0100
+@@ -147,7 +147,9 @@
+ 
+ add_subdirectory(docs)
+ add_subdirectory(lib)
+-add_subdirectory(test)
++if (POLLY_INCLUDE_TESTS)
++  add_subdirectory(test)
++endif ()
+ if (POLLY_GTEST_AVAIL)
+   add_subdirectory(unittests)
+ endif ()

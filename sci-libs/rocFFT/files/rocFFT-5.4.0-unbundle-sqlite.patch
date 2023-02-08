@@ -1,0 +1,91 @@
+--- ./library/src/CMakeLists.txt~	2022-12-08 22:46:33.000000000 +0000
++++ ./library/src/CMakeLists.txt	2022-12-08 23:07:52.671970218 +0000
+@@ -145,47 +145,6 @@
+   rtc_exports.cpp
+   )
+ 
+-# SQLite 3.36.0 enabled the backup API by default, which we need
+-# for cache serialization.  We also want to use a static SQLite,
+-# and distro static libraries aren't typically built
+-# position-independent.
+-option( SQLITE_USE_SYSTEM_PACKAGE "Use SQLite3 from find_package" OFF )
+-if( SQLITE_USE_SYSTEM_PACKAGE )
+-  find_package(SQLite3 3.36 REQUIRED)
+-  set(ROCFFT_SQLITE_LIB SQLite::SQLite3)
+-else()
+-  include( FetchContent )
+-
+-  if(DEFINED ENV{SQLITE_SRC_URL})
+-    set(SQLITE_SRC_URL_INIT $ENV{SQLITE_SRC_URL})
+-  else()
+-    set(SQLITE_SRC_URL_INIT https://sqlite.org/2021/sqlite-amalgamation-3360000.zip)
+-  endif()
+-  set(SQLITE_SRC_URL ${SQLITE_SRC_URL_INIT} CACHE STRING "Location of SQLite source code")
+-  set(SQLITE_SRC_SHA256 999826fe4c871f18919fdb8ed7ec9dd8217180854dd1fe21eea96aed36186729 CACHE STRING "SHA256 hash of SQLite source code")
+-
+-  # embed SQLite
+-  FetchContent_Declare(sqlite_local
+-    URL ${SQLITE_SRC_URL}
+-    URL_HASH SHA256=${SQLITE_SRC_SHA256}
+-  )
+-  FetchContent_MakeAvailable(sqlite_local)
+-  add_library( sqlite3 OBJECT ${sqlite_local_SOURCE_DIR}/sqlite3.c )
+-  set_target_properties( sqlite3 PROPERTIES
+-    C_VISIBILITY_PRESET "hidden"
+-    VISIBILITY_INLINES_HIDDEN ON
+-    POSITION_INDEPENDENT_CODE ON
+-    )
+-
+-  # we don't need extensions, and omitting them from SQLite removes the
+-  # need for dlopen/dlclose from within rocFFT
+-  target_compile_options(
+-    sqlite3
+-    PRIVATE -DSQLITE_OMIT_LOAD_EXTENSION
+-  )
+-  set(ROCFFT_SQLITE_LIB sqlite3)
+-endif()
+-
+ # RTC stuff is used by both core library and helpers, so create
+ # separate libraries
+ #
+@@ -229,7 +188,6 @@
+     PRIVATE
+     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/library/src/include>
+     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/library/include>
+-    ${sqlite_local_SOURCE_DIR}
+   )
+   set_target_properties( ${target} PROPERTIES
+     CXX_VISIBILITY_PRESET "hidden"
+@@ -260,6 +218,8 @@
+   rocfft_stub.cpp
+ )
+ 
++find_package( SQLite3 REQUIRED )
++
+ prepend_path( ".." rocfft_headers_public relative_rocfft_headers_public )
+ 
+ add_library( rocfft
+@@ -292,7 +252,7 @@
+   target_include_directories( ${target}
+     PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/library/src/include>
+     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/library/src/device>
+-    ${sqlite_local_SOURCE_DIR}
++    ${SQLite3_LIBRARIES}
+     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/library/include>
+     $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include/rocfft>
+     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+@@ -303,13 +263,13 @@
+   )
+   target_link_libraries( ${target} PRIVATE
+     rocfft-rtc-cache
+-    ${ROCFFT_SQLITE_LIB}
+     rocfft-rtc-gen
+     rocfft-rtc-compile
+     rocfft-rtc-subprocess
+     rocfft-rtc-common
+     )
+ 
++  target_link_libraries( rocfft PRIVATE ${SQLite3_LIBRARIES} )
+   if( NOT WIN32 )
+     target_link_libraries( ${target} PRIVATE -lstdc++fs )
+   endif()

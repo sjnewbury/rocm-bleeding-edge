@@ -1,0 +1,318 @@
+From 50ff2d30aa2e29a89b5ebd78b07c2849627dce15 Mon Sep 17 00:00:00 2001
+From: Jacob Lambert <jacob.lambert@amd.com>
+Date: Mon, 3 Oct 2022 16:43:53 -0700
+Subject: [PATCH] Enable thread-safe execution of Comgr
+
+In this patch we enable thread-safe execution of Comgr by
+enclosing primary Comgr actions in an std::scoped_lock().
+
+We also remove some finer-grained locks, and add a new
+multithreading test.
+
+Change-Id: I761ddf47ae522453fee761e1b3e8fe0108eceb88
+---
+ lib/comgr/src/comgr-compiler.cpp    |   4 +-
+ lib/comgr/src/comgr-signal.cpp      |   4 -
+ lib/comgr/src/comgr.cpp             | 210 ++++++++++++++-------------
+ lib/comgr/test/CMakeLists.txt       |   1 +
+ lib/comgr/test/multithread_test.cpp | 215 ++++++++++++++++++++++++++++
+ 5 files changed, 328 insertions(+), 106 deletions(-)
+ create mode 100644 lib/comgr/test/multithread_test.cpp
+
+diff --git a/src/comgr-compiler.cpp b/src/comgr-compiler.cpp
+index 0b49474..9015b21 100644
+--- a/src/comgr-compiler.cpp
++++ b/src/comgr-compiler.cpp
+@@ -601,12 +601,10 @@ static amd_comgr_status_t linkWithLLD(llvm::ArrayRef<const char *> Args,
+       Args.begin(), Args.end()));
+   LLDArgs.insert(LLDArgs.begin(), "lld");
+   LLDArgs.push_back("--threads=1");
++
+   ArrayRef<const char *> ArgRefs = llvm::makeArrayRef(LLDArgs);
+-  static std::mutex MScreen;
+-  MScreen.lock();
+   bool LLDRet = lld::elf::link(ArgRefs, LogS, LogE, false, false);
+   lld::CommonLinkerContext::destroy();
+-  MScreen.unlock();
+   if (!LLDRet) {
+     return AMD_COMGR_STATUS_ERROR;
+   }
+diff --git a/src/comgr-signal.cpp b/src/comgr-signal.cpp
+index 7425b25..214813d 100644
+--- a/src/comgr-signal.cpp
++++ b/src/comgr-signal.cpp
+@@ -36,7 +36,6 @@
+ #include "comgr-signal.h"
+ #include "llvm/ADT/STLExtras.h"
+ #include <csignal>
+-#include <mutex>
+ 
+ namespace COMGR {
+ namespace signal {
+@@ -80,12 +79,10 @@ static const int Signals[] = {SIGHUP,
+ static const unsigned NumSigs = std::size(Signals);
+ 
+ static struct sigaction SigActions[NumSigs];
+-static std::mutex SigActionsMutex;
+ #endif // _MSC_VER
+ 
+ amd_comgr_status_t saveHandlers() {
+ #ifndef _MSC_VER
+-  std::lock_guard<std::mutex> Lock(SigActionsMutex);
+   for (unsigned I = 0; I < NumSigs; ++I) {
+     int Status = sigaction(Signals[I], nullptr, &SigActions[I]);
+ 
+@@ -99,7 +96,6 @@ amd_comgr_status_t saveHandlers() {
+ 
+ amd_comgr_status_t restoreHandlers() {
+ #ifndef _MSC_VER
+-  std::lock_guard<std::mutex> Lock(SigActionsMutex);
+   for (unsigned I = 0; I < NumSigs; ++I) {
+     int Status = sigaction(Signals[I], &SigActions[I], nullptr);
+ 
+diff --git a/src/comgr.cpp b/src/comgr.cpp
+index 0e41b0b..5f797be 100644
+--- a/src/comgr.cpp
++++ b/src/comgr.cpp
+@@ -50,6 +50,7 @@
+ #include "llvm/Object/ObjectFile.h"
+ #include "llvm/Support/TargetSelect.h"
+ #include <fstream>
++#include <mutex>
+ #include <string>
+ 
+ #include "time-stat/ts-interface.h"
+@@ -1246,123 +1247,134 @@ amd_comgr_status_t AMD_COMGR_API
+     return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+   }
+ 
+-  ensureLLVMInitialized();
++  amd_comgr_status_t ActionStatus;
+ 
+-  // Save signal handlers so that they can be restored after the action has
+-  // completed.
+-  if (auto Status = signal::saveHandlers()) {
+-    return Status;
+-  }
++  // Enclose core Comgr actions in a mutally excusive region to avoid
++  // multithreading issues stemming from concurrently maintaing multiple
++  // LLVM instances.
++  // TODO: Remove the scoped lock once updates to LLVM enable thread saftey
++  static std::mutex comgr_mutex;
++  {
++    std::scoped_lock comgr_lock(comgr_mutex);
+ 
+-  // The normal log stream, used to return via a AMD_COMGR_DATA_KIND_LOG object.
+-  std::string LogStr;
+-  std::string PerfLog = "PerfStatsLog.txt";
+-  raw_string_ostream LogS(LogStr);
++    ensureLLVMInitialized();
+ 
+-  // The log stream when redirecting to a file.
+-  std::unique_ptr<raw_fd_ostream> LogF;
++    // Save signal handlers so that they can be restored after the action has
++    // completed.
++    if (auto Status = signal::saveHandlers()) {
++      return Status;
++    }
+ 
+-  // Pointer to the currently selected log stream.
+-  raw_ostream *LogP = &LogS;
++    // The normal log stream, used to return via a AMD_COMGR_DATA_KIND_LOG
++    // object.
++    std::string LogStr;
++    std::string PerfLog = "PerfStatsLog.txt";
++    raw_string_ostream LogS(LogStr);
+ 
+-  if (Optional<StringRef> RedirectLogs = env::getRedirectLogs()) {
+-    StringRef RedirectLog = *RedirectLogs;
+-    if (RedirectLog == "stdout") {
+-      LogP = &outs();
+-    } else if (RedirectLog == "stderr") {
+-      LogP = &errs();
+-    } else {
+-      std::error_code EC;
+-      LogF.reset(new (std::nothrow) raw_fd_ostream(
+-          RedirectLog, EC, sys::fs::OF_Text | sys::fs::OF_Append));
+-      if (EC) {
+-        LogF.reset();
+-        *LogP << "Comgr unable to redirect log to file '" << RedirectLog
+-              << "': " << EC.message() << "\n";
++    // The log stream when redirecting to a file.
++    std::unique_ptr<raw_fd_ostream> LogF;
++
++    // Pointer to the currently selected log stream.
++    raw_ostream *LogP = &LogS;
++
++    if (Optional<StringRef> RedirectLogs = env::getRedirectLogs()) {
++      StringRef RedirectLog = *RedirectLogs;
++      if (RedirectLog == "stdout") {
++        LogP = &outs();
++      } else if (RedirectLog == "stderr") {
++        LogP = &errs();
+       } else {
+-        LogP = LogF.get();
+-        PerfLog = RedirectLog.str();
++        std::error_code EC;
++        LogF.reset(new (std::nothrow) raw_fd_ostream(
++            RedirectLog, EC, sys::fs::OF_Text | sys::fs::OF_Append));
++        if (EC) {
++          LogF.reset();
++          *LogP << "Comgr unable to redirect log to file '" << RedirectLog
++            << "': " << EC.message() << "\n";
++        } else {
++          LogP = LogF.get();
++          PerfLog = RedirectLog.str();
++        }
+       }
+     }
+-  }
+ 
+-  InitTimeStatistics(PerfLog);
+-
+-  if (env::shouldEmitVerboseLogs()) {
+-    *LogP << "amd_comgr_do_action:\n"
+-          << "\t  ActionKind: " << getActionKindName(ActionKind) << '\n'
+-          << "\t     IsaName: " << ActionInfoP->IsaName << '\n'
+-          << "\t     Options:";
+-    for (auto &Option : ActionInfoP->getOptions(
+-             ActionKind == AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES)) {
+-      *LogP << ' ';
+-      printQuotedOption(*LogP, Option);
++    InitTimeStatistics(PerfLog);
++
++    if (env::shouldEmitVerboseLogs()) {
++      *LogP << "amd_comgr_do_action:\n"
++        << "\t  ActionKind: " << getActionKindName(ActionKind) << '\n'
++        << "\t     IsaName: " << ActionInfoP->IsaName << '\n'
++        << "\t     Options:";
++      for (auto &Option : ActionInfoP->getOptions(
++          ActionKind == AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES)) {
++        *LogP << ' ';
++        printQuotedOption(*LogP, Option);
++      }
++      *LogP << '\n'
++        << "\t        Path: " << ActionInfoP->Path << '\n'
++        << "\t    Language: " << getLanguageName(ActionInfoP->Language)
++        << '\n';
+     }
+-    *LogP << '\n'
+-          << "\t        Path: " << ActionInfoP->Path << '\n'
+-          << "\t    Language: " << getLanguageName(ActionInfoP->Language)
+-          << '\n';
+-  }
+ 
+-  amd_comgr_status_t ActionStatus;
+ 
+-  ProfilePoint ProfileAction(getActionKindName(ActionKind));
+-  switch (ActionKind) {
+-  case AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE:
+-  case AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE:
+-  case AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE:
+-    ActionStatus = dispatchDisassembleAction(ActionKind, ActionInfoP, InputSetP,
+-                                             ResultSetP, *LogP);
+-    break;
+-  case AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR:
+-  case AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC:
+-  case AMD_COMGR_ACTION_LINK_BC_TO_BC:
+-  case AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE:
+-  case AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY:
+-  case AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE:
+-  case AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE:
+-  case AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE:
+-  case AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN:
+-  case AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC:
+-    ActionStatus = dispatchCompilerAction(ActionKind, ActionInfoP, InputSetP,
+-                                          ResultSetP, *LogP);
+-    break;
+-  case AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS:
+-  case AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES:
+-    ActionStatus =
++    ProfilePoint ProfileAction(getActionKindName(ActionKind));
++    switch (ActionKind) {
++    case AMD_COMGR_ACTION_DISASSEMBLE_RELOCATABLE_TO_SOURCE:
++    case AMD_COMGR_ACTION_DISASSEMBLE_EXECUTABLE_TO_SOURCE:
++    case AMD_COMGR_ACTION_DISASSEMBLE_BYTES_TO_SOURCE:
++      ActionStatus = dispatchDisassembleAction(ActionKind, ActionInfoP,
++                                               InputSetP, ResultSetP, *LogP);
++      break;
++    case AMD_COMGR_ACTION_SOURCE_TO_PREPROCESSOR:
++    case AMD_COMGR_ACTION_COMPILE_SOURCE_TO_BC:
++    case AMD_COMGR_ACTION_LINK_BC_TO_BC:
++    case AMD_COMGR_ACTION_CODEGEN_BC_TO_RELOCATABLE:
++    case AMD_COMGR_ACTION_CODEGEN_BC_TO_ASSEMBLY:
++    case AMD_COMGR_ACTION_ASSEMBLE_SOURCE_TO_RELOCATABLE:
++    case AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_RELOCATABLE:
++    case AMD_COMGR_ACTION_LINK_RELOCATABLE_TO_EXECUTABLE:
++    case AMD_COMGR_ACTION_COMPILE_SOURCE_TO_FATBIN:
++    case AMD_COMGR_ACTION_COMPILE_SOURCE_WITH_DEVICE_LIBS_TO_BC:
++      ActionStatus = dispatchCompilerAction(ActionKind, ActionInfoP, InputSetP,
++                                            ResultSetP, *LogP);
++      break;
++    case AMD_COMGR_ACTION_ADD_PRECOMPILED_HEADERS:
++    case AMD_COMGR_ACTION_ADD_DEVICE_LIBRARIES:
++      ActionStatus =
+         dispatchAddAction(ActionKind, ActionInfoP, InputSetP, ResultSetP);
+-    break;
+-  default:
+-    ActionStatus = AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+-  }
+-  ProfileAction.finish();
+-
+-  // Restore signal handlers.
+-  if (auto Status = signal::restoreHandlers()) {
+-    return Status;
+-  }
+-
+-  if (env::shouldEmitVerboseLogs()) {
+-    *LogP << "\tReturnStatus: " << getStatusName(ActionStatus) << "\n\n";
+-  }
+-
+-  if (ActionInfoP->Logging) {
+-    amd_comgr_data_t LogT;
+-    if (auto Status = amd_comgr_create_data(AMD_COMGR_DATA_KIND_LOG, &LogT)) {
+-      return Status;
++      break;
++    default:
++      ActionStatus = AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
+     }
+-    ScopedDataObjectReleaser LogSDOR(LogT);
+-    DataObject *Log = DataObject::convert(LogT);
+-    if (auto Status = Log->setName("comgr.log")) {
++    ProfileAction.finish();
++
++    // Restore signal handlers.
++    if (auto Status = signal::restoreHandlers()) {
+       return Status;
+     }
+-    if (auto Status = Log->setData(LogS.str())) {
+-      return Status;
++
++    if (env::shouldEmitVerboseLogs()) {
++      *LogP << "\tReturnStatus: " << getStatusName(ActionStatus) << "\n\n";
+     }
+-    if (auto Status = amd_comgr_data_set_add(ResultSet, LogT)) {
+-      return Status;
++
++    if (ActionInfoP->Logging) {
++      amd_comgr_data_t LogT;
++      if (auto Status = amd_comgr_create_data(AMD_COMGR_DATA_KIND_LOG, &LogT)) {
++        return Status;
++      }
++      ScopedDataObjectReleaser LogSDOR(LogT);
++      DataObject *Log = DataObject::convert(LogT);
++      if (auto Status = Log->setName("comgr.log")) {
++        return Status;
++      }
++      if (auto Status = Log->setData(LogS.str())) {
++        return Status;
++      }
++      if (auto Status = amd_comgr_data_set_add(ResultSet, LogT)) {
++        return Status;
++      }
+     }
+-  }
++  } // exit scoped_lock region
+ 
+   return ActionStatus;
+ }

@@ -1,0 +1,13 @@
+diff --git a/lib/comgr/src/comgr-compiler.cpp b/lib/comgr/src/comgr-compiler.cpp
+--- ./src/comgr-compiler.cpp~
++++ ./src/comgr-compiler.cpp
+@@ -1427,6 +1427,9 @@ amd_comgr_status_t AMDGPUCompiler::codeGenBitcodeToRelocatable() {
+ 
+   Args.push_back("-c");
+ 
++  Args.push_back("-mllvm");
++  Args.push_back("-amdgpu-internalize-symbols");
++
+   return processFiles(AMD_COMGR_DATA_KIND_RELOCATABLE, ".o");
+ }
+ 

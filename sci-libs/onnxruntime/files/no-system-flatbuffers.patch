@@ -1,0 +1,15 @@
+--- ./CMakeLists.txt~	2022-12-07 13:11:42.000000000 +0000
++++ ./CMakeLists.txt	2022-12-07 13:15:08.593514349 +0000
+@@ -1604,9 +1604,9 @@
+ endif()
+ 
+ # Flatbuffers
+-if (onnxruntime_PREFER_SYSTEM_LIB)
+-  find_package(Flatbuffers)
+-endif()
++#if (onnxruntime_PREFER_SYSTEM_LIB)
++#  find_package(Flatbuffers)
++#endif()
+ if (Flatbuffers_FOUND)
+   message("Use flatbuffers from preinstalled system lib")
+   add_library(flatbuffers ALIAS flatbuffers::flatbuffers_shared)

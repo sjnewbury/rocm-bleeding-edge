@@ -1,0 +1,52 @@
+diff --git a/src/HipifyAction.cpp b/src/HipifyAction.cpp
+index bc2caa41..b84c2acb 100644
+--- a/src/HipifyAction.cpp
++++ b/src/HipifyAction.cpp
+@@ -730,8 +730,10 @@ class PPCallbackProxy : public clang::PPCallbacks {
+                           StringRef file_name, bool is_angled, clang::CharSourceRange filename_range,
+ #if LLVM_VERSION_MAJOR < 15
+                           const clang::FileEntry *file,
+-#else
++#elif LLVM_VERSION_MAJOR == 15
+                           Optional<clang::FileEntryRef> file,
++#else
++                          clang::OptionalFileEntryRef file,
+ #endif
+                           StringRef search_path, StringRef relative_path,
+                           const clang::Module *imported
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1a8d3d5..bb5650d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -85,6 +85,12 @@ else()
+     endif()
+ endif()
+ 
++# [ToDo] Remove SWDEV_375013 related guards from CMakeLists.txt and HipifyAction.cpp along with the LLVM 16.0.0 official release
++option (SWDEV_375013 "Enables SWDEV-375013 blocker workaround for the clang's change https://reviews.llvm.org/D140332" OFF)
++if(SWDEV_375013)
++    add_definitions(-DSWDEV_375013)
++endif()
++
+ if(MSVC)
+     target_link_libraries(hipify-clang PRIVATE version)
+     target_compile_options(hipify-clang PRIVATE ${STD} /Od /GR- /EHs- /EHc-)
+diff --git a/src/HipifyAction.cpp b/src/HipifyAction.cpp
+index b84c2ac..382256b 100644
+--- a/src/HipifyAction.cpp
++++ b/src/HipifyAction.cpp
+@@ -725,12 +725,12 @@ class PPCallbackProxy : public clang::PPCallbacks {
+ 
+ public:
+   explicit PPCallbackProxy(HipifyAction &action): hipifyAction(action) {}
+-
++  // [ToDo] Remove SWDEV_375013 related guards from CMakeLists.txt and HipifyAction.cpp along with the LLVM 16.0.0 official release
+   void InclusionDirective(clang::SourceLocation hash_loc, const clang::Token &include_token,
+                           StringRef file_name, bool is_angled, clang::CharSourceRange filename_range,
+ #if LLVM_VERSION_MAJOR < 15
+                           const clang::FileEntry *file,
+-#elif LLVM_VERSION_MAJOR == 15
++#elif (LLVM_VERSION_MAJOR == 15) || (LLVM_VERSION_MAJOR == 16 && SWDEV_375013)
+                           Optional<clang::FileEntryRef> file,
+ #else
+                           clang::OptionalFileEntryRef file,

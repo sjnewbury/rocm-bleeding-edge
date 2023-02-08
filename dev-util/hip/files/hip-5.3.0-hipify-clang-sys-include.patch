@@ -1,0 +1,20 @@
+--- HIPIFY-rocm-5.3.0/src/main.cpp.orig	2022-10-15 18:11:46.465066146 +0100
++++ HIPIFY-rocm-5.3.0/src/main.cpp	2022-10-15 18:12:41.782903723 +0100
+@@ -129,6 +129,17 @@
+   Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-Xclang", ct::ArgumentInsertPosition::BEGIN));
+   Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-internal-isystem", ct::ArgumentInsertPosition::BEGIN));
+   Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-Xclang", ct::ArgumentInsertPosition::BEGIN));
++  // Includes for clang's system CUDA wrappers
++  std::string clang_inc_sys_path = "@CLANG_INCLUDE_PATH@";
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster(clang_inc_sys_path.c_str(), ct::ArgumentInsertPosition::BEGIN));
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-Xclang", ct::ArgumentInsertPosition::BEGIN));
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-internal-isystem", ct::ArgumentInsertPosition::BEGIN));
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-Xclang", ct::ArgumentInsertPosition::BEGIN));
++  clang_inc_path_old.append("/cuda_wrappers");
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster(clang_inc_sys_path.c_str(), ct::ArgumentInsertPosition::BEGIN));
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-Xclang", ct::ArgumentInsertPosition::BEGIN));
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-internal-isystem", ct::ArgumentInsertPosition::BEGIN));
++  Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster("-Xclang", ct::ArgumentInsertPosition::BEGIN));
+   // Includes for clang's CUDA wrappers for using by new packaged hipify-clang
+   std::string clang_inc_path_new = hipify_parent_path + "/../include/hipify";
+   Tool.appendArgumentsAdjuster(ct::getInsertArgumentAdjuster(clang_inc_path_new.c_str(), ct::ArgumentInsertPosition::BEGIN));

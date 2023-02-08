@@ -1,0 +1,30 @@
+--- ./CMakeLists.txt.orig	2022-12-07 18:01:28.400550434 +0000
++++ ./CMakeLists.txt	2022-12-07 18:03:28.956435958 +0000
+@@ -1578,20 +1578,15 @@
+   set(ONNX_USE_LITE_PROTO OFF CACHE BOOL "" FORCE)
+ endif()
+ 
+-if (NOT onnxruntime_MINIMAL_BUILD)
+-  add_subdirectory(external/onnx EXCLUDE_FROM_ALL)
+-else()
+-  include(onnx_minimal)
++Find_Package(ONNX)
++if (ONNX_FOUND)
++  message( STATUS "ONNX Version: ${ONNX_VERSION}")
++  mark_as_advanced(ONNX_INCLUDE_DIRS ONNX_LIBRARIES)
++  list(APPEND onnxruntime_EXTERNAL_LIBRARIES ${ONNX_LINK_FLAGS})
++else ()
++    message(FATAL_ERROR "This build is patched to only use system ONNX, but it can't be found.")
+ endif()
+ 
+-target_compile_definitions(onnx PUBLIC $<TARGET_PROPERTY:onnx_proto,INTERFACE_COMPILE_DEFINITIONS> PRIVATE "__ONNX_DISABLE_STATIC_REGISTRATION")
+-if (NOT onnxruntime_USE_FULL_PROTOBUF)
+-  target_compile_definitions(onnx PUBLIC "__ONNX_NO_DOC_STRINGS")
+-endif()
+-set_target_properties(onnx PROPERTIES FOLDER "External/ONNX")
+-set_target_properties(onnx_proto PROPERTIES FOLDER "External/ONNX")
+-
+-
+ # fix a warning in onnx code we can't do anything about
+ if (MSVC)
+    string(APPEND CMAKE_CXX_FLAGS " -DEIGEN_HAS_C99_MATH") # required to be set explicitly to enable Eigen-Unsupported SpecialFunctions

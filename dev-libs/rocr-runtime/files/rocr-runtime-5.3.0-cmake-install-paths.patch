@@ -1,0 +1,37 @@
+--- src/CMakeLists.txt.orig	2022-09-30 19:31:23.000000000 +0100
++++ src/CMakeLists.txt	2022-10-14 20:32:55.759232518 +0100
+@@ -121,7 +121,7 @@
+ target_include_directories( ${CORE_RUNTIME_TARGET}
+   PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+-  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
++  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/hsa>
+   PRIVATE
+   ${CMAKE_CURRENT_SOURCE_DIR}
+   ${CMAKE_CURRENT_SOURCE_DIR}/libamdhsacode
+@@ -301,24 +301,13 @@
+ 
+ ## Set install information
+ # Installs binaries and exports the library usage data to ${HSAKMT_TARGET}Targets
+-install ( TARGETS ${CORE_RUNTIME_TARGET} EXPORT ${CORE_RUNTIME_NAME}Targets
+-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT binary
+-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT binary )
++install ( TARGETS ${CORE_RUNTIME_TARGET} EXPORT ${CORE_RUNTIME_NAME}Targets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+ 
+ # Install license
+ install ( FILES ${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md DESTINATION ${CMAKE_INSTALL_DOCDIR} COMPONENT binary )
+ 
+ # Install public headers
+ install ( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/inc/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hsa COMPONENT dev )
+-
+-# Option to build header path migration helpers.
+-option(INCLUDE_PATH_COMPATIBILITY "Generate backward compatible headers and include paths.  Use of these headers will warn when included." ON)
+-if(INCLUDE_PATH_COMPATIBILITY)
+-  include(hsa-backward-compat.cmake)
+-  target_include_directories( ${CORE_RUNTIME_TARGET}
+-    PUBLIC
+-    $<INSTALL_INTERFACE:hsa/include/hsa> )
+-endif()
+ 
+ ## Configure and install package config file
+ # Record our usage data for clients find_package calls.

@@ -1,0 +1,121 @@
+--- ./src/comgr-objdump.cpp~	2022-12-08 19:58:50.000000000 +0000
++++ ./src/comgr-objdump.cpp	2022-12-08 19:59:53.613185220 +0000
+@@ -2162,7 +2162,7 @@
+ 
+   StringRef ClangASTContents;
+   Expected<StringRef> ExpClangASTContents =
+-      ClangASTSection.getValue().getContents();
++      ClangASTSection.value().getContents();
+   if (ExpClangASTContents) {
+     ClangASTContents = *ExpClangASTContents;
+   } else {
+@@ -2210,7 +2210,7 @@
+ 
+   StringRef FaultMapContents;
+   Expected<StringRef> ExpFaultMapContents =
+-      FaultMapSection.getValue().getContents();
++      FaultMapSection.value().getContents();
+   if (ExpFaultMapContents) {
+     FaultMapContents = *ExpFaultMapContents;
+   } else {
+--- ./src/comgr-objdump.cpp~	2022-12-08 20:08:05.000000000 +0000
++++ ./src/comgr-objdump.cpp	2022-12-08 20:09:23.418581812 +0000
+@@ -2203,7 +2203,7 @@
+ 
+   OutS << "FaultMap table:\n";
+ 
+-  if (!FaultMapSection.hasValue()) {
++  if (!FaultMapSection.has_value()) {
+     OutS << "<not found>\n";
+     return;
+   }
+--- ./src/comgr-compiler.cpp~	2022-12-08 20:22:54.000000000 +0000
++++ ./src/comgr-compiler.cpp	2022-12-08 20:23:08.046039787 +0000
+@@ -245,12 +245,13 @@
+                                      OPT_compress_debug_sections_EQ)) {
+     if (A->getOption().getID() == OPT_compress_debug_sections) {
+       // TODO: be more clever about the compression type auto-detection
+-      Opts.CompressDebugSections = llvm::DebugCompressionType::Z;
++      Opts.CompressDebugSections = llvm::DebugCompressionType::Zlib;
+     } else {
+       Opts.CompressDebugSections =
+           llvm::StringSwitch<llvm::DebugCompressionType>(A->getValue())
+               .Case("none", llvm::DebugCompressionType::None)
+-              .Case("zlib", llvm::DebugCompressionType::Z)
++              .Case("zlib", llvm::DebugCompressionType::Zlib)
++              .Case("zstd", llvm::DebugCompressionType::Zstd)
+               .Default(llvm::DebugCompressionType::None);
+     }
+   }
+--- ./src/comgr-compiler.cpp~   2022-12-08 20:23:43.000000000 +0000
++++ ./src/comgr-compiler.cpp    2022-12-08 21:11:02.553562243 +0000
+@@ -842,7 +842,7 @@
+   }
+ 
+   ArgsV.push_back("--genco");
+-  std::vector<Optional<StringRef>> Redirects;
++  ArrayRef<std::optional<StringRef>> Redirects;
+   std::string ErrMsg;
+   int RC = sys::ExecuteAndWait(Exec, ArgsV,
+                                /*env=*/None, Redirects, /*secondsToWait=*/0,
+--- ./src/comgr-compiler.cpp~
++++ ./src/comgr-compiler.cpp
+@@ -39,6 +39,7 @@
+ #include "comgr-compiler.h"
+ #include "comgr-device-libs.h"
+ #include "comgr-env.h"
++#include "lld/Common/CommonLinkerContext.h"
+ #include "lld/Common/Driver.h"
+ #include "clang/Basic/Version.h"
+ #include "clang/CodeGen/CodeGenAction.h"
+--- ./src/comgr-compiler.cpp~
++++ ./src/comgr-compiler.cpp
+@@ -259,7 +259,7 @@ bool AssemblerInvocation::createFromArgs(AssemblerInvocation &Opts,
+     }
+   }
+ 
+-  Opts.RelaxELFRelocations = Args.hasArg(OPT_mrelax_relocations);
++  Opts.RelaxELFRelocations = !Args.hasArg(OPT_mrelax_relocations_no);
+   Opts.DwarfVersion = getLastArgIntValue(Args, OPT_dwarf_version_EQ, 2, Diags);
+   Opts.DwarfDebugFlags =
+       std::string(Args.getLastArgValue(OPT_dwarf_debug_flags));
+--- ./src/comgr-objdump.cpp~
++++ ./src/comgr-objdump.cpp
+@@ -1270,7 +1270,10 @@ void llvm::DisassemHelper::DisassembleObject(const ObjectFile *Obj,
+   const Target *TheTarget = getTarget(Obj);
+ 
+   // Package up features to be passed to target/subtarget
+-  SubtargetFeatures Features = Obj->getFeatures();
++  Expected<SubtargetFeatures> FeaturesValue = Obj->getFeatures();
++  if (!FeaturesValue)
++    WithColor::error(errs(), ToolName) << FeaturesValue.takeError();
++  SubtargetFeatures Features = *FeaturesValue;
+   std::vector<std::string> MAttrs = lld::getMAttrs();
+   if (MAttrs.size()) {
+     for (unsigned I = 0; I != MAttrs.size(); ++I) {
+--- ./src/comgr-objdump.cpp~
++++ ./src/comgr-objdump.cpp
+@@ -175,9 +175,9 @@ cl::opt<bool> SectionHeaders("section-headers",
+ static cl::alias SectionHeadersShort("headers",
+                                      cl::desc("Alias for --section-headers"),
+                                      cl::aliasopt(SectionHeaders));
+-static cl::alias SectionHeadersShorter("h",
+-                                       cl::desc("Alias for --section-headers"),
+-                                       cl::aliasopt(SectionHeaders));
++// The following option has been removed to avoid conflicts with
++// other llvm tools/instances also attempting to register a -h option
++//   static cl::alias SectionHeadersShorter("h", ...)
+ 
+ cl::list<std::string>
+     FilterSections("section",
+--- ./src/comgr-compiler.cpp~	2023-01-29 00:15:01.000000000 +0000
++++ ./src/comgr-compiler.cpp	2023-01-29 00:16:50.879998116 +0000
+@@ -80,6 +80,8 @@
+ 
+ #include "time-stat/ts-interface.h"
+ 
++#include <optional>
++
+ using namespace llvm;
+ using namespace llvm::opt;
+ using namespace llvm::sys;

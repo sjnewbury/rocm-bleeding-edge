@@ -1,0 +1,11 @@
+--- ./CMakeLists.txt~	2022-12-07 17:24:16.000000000 +0000
++++ ./CMakeLists.txt	2022-12-07 17:28:03.481439139 +0000
+@@ -696,7 +696,7 @@
+ 
+ if(NOT ANDROID AND NOT IOS)
+   install(TARGETS onnxifi_wrapper
+-    EXPORT ONNXTargets DESTINATION lib)
++    EXPORT ONNXTargets DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ endif()
+ 
+ if(ONNXIFI_DUMMY_BACKEND)

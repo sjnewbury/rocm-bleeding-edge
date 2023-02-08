@@ -1,0 +1,45 @@
+--- ./CMakeLists.txt~	2022-12-08 17:48:43.000000000 +0000
++++ ./CMakeLists.txt	2022-12-10 14:13:39.447622692 +0000
+@@ -5,8 +5,6 @@
+ 
+ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+ 
+-enable_testing()
+-
+ set(ROCM_SYMLINK_LIBS OFF)
+ find_package(ROCM REQUIRED PATHS /opt/rocm)
+ 
+@@ -245,8 +243,6 @@
+ endif()
+ message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+ 
+-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
+-
+ file(GLOB_RECURSE INSTANCE_FILES "${PROJECT_SOURCE_DIR}/*/device_*_instance.cpp")
+ file(GLOB dir_list RELATIVE ${PROJECT_SOURCE_DIR}/library/src/tensor_operation_instance/gpu ${PROJECT_SOURCE_DIR}/library/src/tensor_operation_instance/gpu/*)
+ set(CK_DEVICE_INSTANCES)
+@@ -257,24 +253,12 @@
+ ENDFOREACH()
+ add_custom_target(instances DEPENDS utility;${CK_DEVICE_INSTANCES}  SOURCES ${INSTANCE_FILES})
+ 
+-rocm_package_setup_component(tests
+-        LIBRARY_NAME composablekernel
+-        PACKAGE_NAME tests # Prevent -static suffix on package name
+-)
+-
+-rocm_package_setup_component(examples
+-        LIBRARY_NAME composablekernel
+-        PACKAGE_NAME examples
+-)
+-
+ rocm_package_setup_component(profiler
+         LIBRARY_NAME composablekernel
+         PACKAGE_NAME ckProfiler
+ )
+ 
+ add_subdirectory(library)
+-add_subdirectory(example)
+-add_subdirectory(test)
+ add_subdirectory(profiler)
+ 
+ #Create an interface target for the include only files and call it "composablekernels"

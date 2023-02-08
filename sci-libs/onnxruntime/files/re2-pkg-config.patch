@@ -1,0 +1,66 @@
+--- ./CMakeLists.txt~	2022-12-06 23:06:40.000000000 +0000
++++ ./CMakeLists.txt	2022-12-06 23:38:59.082573478 +0000
+@@ -934,9 +934,10 @@
+ endif()
+ 
+ if (onnxruntime_PREFER_SYSTEM_LIB)
+-  find_package(re2)
++  include(FindPkgConfig)
++  pkg_check_modules(RE2 IMPORTED_TARGET re2)
+ endif()
+-if (re2_FOUND)
++if (RE2_FOUND)
+   message("Use re2 from preinstalled system lib")
+ else()
+   message("Use re2 from submodule")
+--- ./CMakeLists.txt~	2022-12-07 15:47:08.000000000 +0000
++++ ./CMakeLists.txt	2022-12-07 15:52:02.979487723 +0000
+@@ -1037,7 +1037,7 @@
+ #onnxruntime_EXTERNAL_LIBRARIES could contain onnx, onnx_proto,libprotobuf, cuda/cudnn,
+ # dnnl/mklml, onnxruntime_codegen_tvm, tvm and pthread
+ # pthread is always at the last
+-set(onnxruntime_EXTERNAL_LIBRARIES onnx onnx_proto ${PROTOBUF_LIB} re2::re2)
++set(onnxruntime_EXTERNAL_LIBRARIES onnx onnx_proto ${PROTOBUF_LIB} PkgConfig::RE2)
+ 
+ if(NOT onnxruntime_DISABLE_ABSEIL)
+   set(ABSEIL_LIBS absl::inlined_vector absl::flat_hash_set
+--- ./onnxruntime_unittests.cmake~	2022-10-22 00:18:22.000000000 +0100
++++ ./onnxruntime_unittests.cmake	2022-12-07 15:52:03.472831498 +0000
+@@ -651,7 +651,7 @@
+   target_compile_options(onnx_test_runner_common PRIVATE "/wd4244")
+ endif()
+ onnxruntime_add_include_to_target(onnx_test_runner_common onnxruntime_common onnxruntime_framework
+-        onnxruntime_test_utils onnx onnx_proto re2::re2 flatbuffers)
++        onnxruntime_test_utils onnx onnx_proto PkgConfig::RE2 flatbuffers)
+ 
+ add_dependencies(onnx_test_runner_common onnx_test_data_proto ${onnxruntime_EXTERNAL_DEPENDENCIES})
+ target_include_directories(onnx_test_runner_common PRIVATE ${eigen_INCLUDE_DIRS} ${RE2_INCLUDE_DIR}
+@@ -993,7 +993,7 @@
+           onnx_proto
+           ${PROTOBUF_LIB}
+           GTest::gtest
+-          re2::re2
++          PkgConfig::RE2
+           onnxruntime_flatbuffers
+           ${CMAKE_DL_LIBS}
+           )
+--- ./onnxruntime_webassembly.cmake~	2022-10-22 00:18:22.000000000 +0100
++++ ./onnxruntime_webassembly.cmake	2022-12-07 15:52:03.729503601 +0000
+@@ -111,7 +111,7 @@
+       ${PROVIDERS_XNNPACK}
+       onnxruntime_session
+       onnxruntime_util
+-      re2::re2
++      PkgConfig::RE2
+     )
+ 
+     if (onnxruntime_ENABLE_TRAINING OR onnxruntime_ENABLE_TRAINING_OPS)
+@@ -175,7 +175,7 @@
+     ${PROVIDERS_XNNPACK}
+     onnxruntime_session
+     onnxruntime_util
+-    re2::re2
++    PkgConfig::RE2
+   )
+   if (onnxruntime_USE_XNNPACK)
+     target_link_libraries(onnxruntime_webassembly PRIVATE XNNPACK)

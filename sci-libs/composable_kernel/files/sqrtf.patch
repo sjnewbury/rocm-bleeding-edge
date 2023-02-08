@@ -1,0 +1,11 @@
+--- ./profiler/include/profiler/profile_batchnorm_backward_impl.hpp~	2023-01-18 18:02:50.000000000 +0000
++++ ./profiler/include/profiler/profile_batchnorm_backward_impl.hpp	2023-01-23 15:48:24.152375682 +0000
+@@ -111,7 +111,7 @@
+         while(it_src != savedVariance.mData.end())
+         {
+             *it_dst = type_convert<AccDataType>(
+-                1.0f / std::sqrtf(type_convert<float>(*it_src) + tmp_epsilon));
++                1.0f / sqrtf(type_convert<float>(*it_src) + tmp_epsilon));
+ 
+             it_src++;
+             it_dst++;

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE repositories SYSTEM "repositories.dtd">
+<repositories xmlns="" version="1.0">
+  <repo quality="experimental" status="unofficial">
+    <name>rocm-bleeding-edge</name>
+    <description>ROCm support for Gentoo based on current/next upstream</description>
+    <homepage>https://github.com/sjnewbury/rocm-bleeding-edge</homepage>
+    <owner type="project">
+      <email>steve at snewbury.org.uk</email>
+      <name>Steven Newbury</name>
+    </owner>
+    <source type="git">https://github.com/sjnewbury/rocm-bleeding-edge.git</source>
+  </repo>
+</repositories>

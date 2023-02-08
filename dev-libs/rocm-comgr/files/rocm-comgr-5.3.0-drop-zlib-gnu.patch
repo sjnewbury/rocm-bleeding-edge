@@ -1,0 +1,17 @@
+--- comgr/src/comgr-compiler.cpp~	2022-10-14 16:14:02.000000000 +0100
++++ comgr/src/comgr-compiler.cpp	2022-10-14 16:24:21.526868344 +0100
+@@ -245,13 +245,12 @@
+                                      OPT_compress_debug_sections_EQ)) {
+     if (A->getOption().getID() == OPT_compress_debug_sections) {
+       // TODO: be more clever about the compression type auto-detection
+-      Opts.CompressDebugSections = llvm::DebugCompressionType::GNU;
++      Opts.CompressDebugSections = llvm::DebugCompressionType::Z;
+     } else {
+       Opts.CompressDebugSections =
+           llvm::StringSwitch<llvm::DebugCompressionType>(A->getValue())
+               .Case("none", llvm::DebugCompressionType::None)
+               .Case("zlib", llvm::DebugCompressionType::Z)
+-              .Case("zlib-gnu", llvm::DebugCompressionType::GNU)
+               .Default(llvm::DebugCompressionType::None);
+     }
+   }
