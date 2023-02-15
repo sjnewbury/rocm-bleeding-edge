@@ -55,7 +55,7 @@ LLVM_TEST_COMPONENTS=(
 	llvm/utils/{lit,llvm-lit,unittest}
 	llvm/utils/{UpdateTestChecks,update_cc_test_checks.py}
 )
-LLVM_PATCHSET=15.0.2-r100
+#LLVM_PATCHSET=15.0.2-r100
 LLVM_USE_TARGETS=llvm
 llvm.org_set_globals
 
@@ -81,6 +81,11 @@ src_prepare() {
 	# create extra parent dir for relative CLANG_RESOURCE_DIR access
 	mkdir -p x/y || die
 	BUILD_DIR=${WORKDIR}/x/y/clang
+
+	pushd ${WORKDIR}
+	eapply ${FILESDIR}/gentoo-rocm-device-lib-path.patch
+	eapply ${FILESDIR}/patchset
+	popd
 
 	llvm.org_src_prepare
 

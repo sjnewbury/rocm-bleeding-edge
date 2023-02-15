@@ -1,0 +1,13 @@
+--- ./clang/lib/Driver/ToolChains/AMDGPU.cpp~	2022-10-04 10:29:17.000000000 +0100
++++ ./clang/lib/Driver/ToolChains/AMDGPU.cpp	2022-10-14 17:23:38.555495215 +0100
+@@ -258,6 +258,10 @@
+   if (ParentPath != InstallDir)
+     ROCmSearchDirs.emplace_back(DeduceROCmPath(ParentPath));
+ 
++  // Device library installed in system lib directory.
++    ROCmSearchDirs.emplace_back(D.SysRoot + "/usr/lib",
++                              /*StrictChecking=*/true);
++
+   // Device library may be installed in clang or resource directory.
+   auto ClangRoot = llvm::sys::path::parent_path(InstallDir);
+   auto RealClangRoot = llvm::sys::path::parent_path(ParentPath);
