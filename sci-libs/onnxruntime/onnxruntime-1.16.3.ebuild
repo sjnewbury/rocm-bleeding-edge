@@ -27,14 +27,11 @@ IUSE="benchmark test rocm"
 RESTRICT="test"
 
 PATCHES=(
-	#"${FILESDIR}/shared-flatbuffers.patch"
-	#"${FILESDIR}/no-system-flatbuffers.patch"
 	"${FILESDIR}/re2-pkg-config-r1.patch"
 	"${FILESDIR}/system-onnx-r1.patch"
 	"${FILESDIR}/system-cpuinfo.patch"
 	"${FILESDIR}/system-nsync.patch"
 	"${FILESDIR}/system-composable_kernel.patch"
-	#"${FILESDIR}/system-flatbuffers.patch"
 	"${FILESDIR}/system-protobuf.patch"
 	"${FILESDIR}/system-mp11.patch"
 	"${FILESDIR}/rocm-version-override-r2.patch"
@@ -61,7 +58,6 @@ RDEPEND="
 	sci-libs/hipFFT:=
 	sci-libs/hipCUB:=
 "
-#	dev-libs/flatbuffers:=
 
 DEPEND="
 	${RDEPEND}
@@ -77,30 +73,21 @@ DEPEND="
 "
 
 pkg_setup() {
-	local OLD_CC=${CC} OLD_CXX=${CXX}
 	CC=clang CXX=clang++
 	tc-is-clang || die Clang required
 
 	strip-unsupported-flags
-	CC=${OLD_CC} CXX=${OLD_CXX}
-
-	#filter-flags -fuse-ld=*
-	#append-flags -fuse-ld=lld
 
 	append-cppflags "-I/usr/include/eigen3"
 	append-flags "-Wno-error=deprecated-declarations"
-
+	append-flags "-Wno-error=instantiation-after-specialization"
+	append-flags "-Wno-error=shorten-64-to-32" "-Wno-error=unused-private-field"
 }
 
 src_prepare() {
 	pushd ..
-	#eapply "${FILESDIR}/13799.patch"
 	eapply "${FILESDIR}/shared-build-fix.patch"
 	eapply "${FILESDIR}/hip-libdir.patch"
-	#eapply 	"${FILESDIR}/use-hip-language.patch"
-	#eapply 	"${FILESDIR}/hipify-during-build.patch"
-	#eapply 	"${FILESDIR}/rocm-warn-and-dev.patch"
-	#eapply 	"${FILESDIR}/drop-hip_add_library.patch"
 	popd
 
 	cmake_src_prepare
@@ -112,11 +99,9 @@ src_configure() {
 	export ROCM_VERSION="${ROCM_VERSION}"-
 
 	local mycmakeargs=(
-		-Donnxruntime_PREFER_SYSTEM_LIB=ON
 		-Donnxruntime_BUILD_BENCHMARKS=$(usex benchmark)
 		-Donnxruntime_BUILD_UNIT_TESTS=$(usex test)
 		-DFETCHCONTENT_FULLY_DISCONNECTED=ON
-		#-DFETCHCONTENT_TRY_FIND_PACKAGE_MODE=ALWAYS
 		-DFETCHCONTENT_SOURCE_DIR_SAFEINT="${WORKDIR}/SafeInt-${SAFEINT_COMMIT}"
 		-DFETCHCONTENT_SOURCE_DIR_FLATBUFFERS="${WORKDIR}/flatbuffers-${FLATBUFFERS_PV}"
 		-DFETCHCONTENT_SOURCE_DIR_DATE="${WORKDIR}/date-${DATE_PV}"
