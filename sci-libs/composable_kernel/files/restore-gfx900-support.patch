@@ -20,8 +20,8 @@
  #define CK_USE_AMD_V_MAC_F32
  #elif defined(__gfx906__) || defined(__gfx908__) || defined(__gfx90a__) || defined(__gfx1030__) || \
      defined(__gfx940__) // for GPU code
---- ./include/ck/utility/amd_inline_asm.hpp.orig	2023-12-07 23:57:17.118795409 +0000
-+++ ./include/ck/utility/amd_inline_asm.hpp	2023-12-08 10:41:38.469904977 +0000
+--- ./include/ck/utility/amd_inline_asm.hpp.orig	2023-04-29 00:22:59.000000000 +0100
++++ ./include/ck/utility/amd_inline_asm.hpp	2023-12-08 13:57:14.553213052 +0000
 @@ -6,6 +6,9 @@
  
  #include "data_type.hpp"
@@ -62,7 +62,7 @@
      asm volatile("\n \
              v_fmac_f32 %0, %4, %5 \n \
              v_fmac_f32 %1, %4, %6 \n \
-@@ -38,6 +48,16 @@
+@@ -38,6 +51,16 @@
              "
                   : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3)
                   : "v"(a), "v"(b0), "v"(b1), "v"(b2), "v"(b3), "0"(c0), "1"(c1), "2"(c2), "3"(c3));
@@ -79,8 +79,7 @@
  }
  
  // c0 += inner_product(a, b0)
- 
-@@ -65,12 +68,27 @@
+@@ -45,12 +68,27 @@
  __device__ void
  amd_assembly_outer_product_1x2(half2_t a, half2_t b0, half2_t b1, float& c0, float& c1)
  {
@@ -108,7 +107,7 @@
  }
  
  // c0 += inner_product(a, b0)
-@@ -78,6 +96,7 @@
+@@ -58,6 +96,7 @@
  __device__ void
  amd_assembly_outer_product_1x2(half4_t a, half4_t b0, half4_t b1, float& c0, float& c1)
  {
@@ -116,7 +115,7 @@
      // TODO remove pointer casting
      const half2_t* p_a_half2  = c_style_pointer_cast<const half2_t*>(&a);
      const half2_t* p_b0_half2 = c_style_pointer_cast<const half2_t*>(&b0);
-@@ -99,6 +118,20 @@
+@@ -79,6 +118,20 @@
                     "v"(p_b1_half2[1]),
                     "0"(c0),
                     "1"(c1));
@@ -137,7 +136,7 @@
  }
  
  // c0 += inner_product(a, b0)
-@@ -115,6 +148,7 @@
+@@ -95,6 +148,7 @@
                                                 float& c2,
                                                 float& c3)
  {
@@ -145,7 +144,7 @@
      asm volatile("\n \
              v_dot2_f32_f16 %0, %4, %5, %0\n \
              v_dot2_f32_f16 %1, %4, %6, %1\n \
-@@ -123,6 +157,28 @@
+@@ -103,6 +157,28 @@
              "
                   : "=v"(c0), "=v"(c1), "=v"(c2), "=v"(c3)
                   : "v"(a), "v"(b0), "v"(b1), "v"(b2), "v"(b3), "0"(c0), "1"(c1), "2"(c2), "3"(c3));
@@ -158,7 +157,7 @@
 +
 +    #pragma omp parallel for reduction(+:c0,c1,c2,c3)
 +    static_for<0, 2, 1>{}([&](auto i) {
-+        c0 += type_convert<int32_t>(a_vector.AsType<half _t>()[i]) *
++        c0 += type_convert<int32_t>(a_vector.AsType<half_t>()[i]) *
 +             type_convert<int32_t>(b0_vector.AsType<half_t>()[i]);
 +
 +        c1 += type_convert<int32_t>(a_vector.AsType<half_t>()[i]) *
@@ -174,15 +173,15 @@
  }
  
  // c0 += inner_product(a, b0)
-@@ -140,6 +196,7 @@
+@@ -119,6 +195,7 @@
+                                                float& c2,
                                                 float& c3)
  {
-     // TODO remove pointer casting
 +#if defined(CK_USE_AMD_V_DOT2_F32_F16)
+     // TODO remove pointer casting
      const half2_t* p_a_half2  = c_style_pointer_cast<const half2_t*>(&a);
      const half2_t* p_b0_half2 = c_style_pointer_cast<const half2_t*>(&b0);
-     const half2_t* p_b1_half2 = c_style_pointer_cast<const half2_t*>(&b1);
-@@ -172,6 +229,28 @@
+@@ -152,6 +229,28 @@
                     "1"(c1),
                     "2"(c2),
                     "3"(c3));
@@ -195,7 +194,7 @@
 +
 +    #pragma omp parallel for reduction(+:c0,c1,c2,c3)
 +    static_for<0, 4, 1>{}([&](auto i) {
-+        c0 += type_convert<int32_t>(a_vector.AsType<half _t>()[i]) *
++        c0 += type_convert<int32_t>(a_vector.AsType<half_t>()[i]) *
 +             type_convert<int32_t>(b0_vector.AsType<half_t>()[i]);
 +
 +        c1 += type_convert<int32_t>(a_vector.AsType<half_t>()[i]) *
@@ -211,7 +210,7 @@
  }
  
  __device__ void amd_assembly_outer_product_1x4(half8_t a,
-@@ -228,6 +307,7 @@
+@@ -208,6 +307,7 @@
  __device__ void
  amd_assembly_outer_product_1x2(int8x4_t a, int8x4_t b0, int8x4_t b1, int32_t& c0, int32_t& c1)
  {
@@ -219,7 +218,7 @@
  #if 1
      asm volatile("\n \
              v_dot4_i32_i8 %0, %2, %3, %0\n \
-@@ -243,6 +323,17 @@
+@@ -223,6 +323,19 @@
      c0     = __builtin_amdgcn_sdot4(bit_cast<int32_t>(a), bit_cast<int32_t>(b0), c0, false);
      c1     = __builtin_amdgcn_sdot4(bit_cast<int32_t>(a), bit_cast<int32_t>(b1), c1, false);
  #endif
@@ -230,14 +229,16 @@
 +
 +    #pragma omp parallel for reduction(+:c0,c1)
 +    static_for<0, 4, 1>{}([&](auto i) {
-+        c0 += static_cast<int32_t>(a_vector[i]) * static_cast<int32_t>(b0_vector[i]);
-+        c1 += static_cast<int32_t>(a_vector[i]) * static_cast<int32_t>(b1_vector[i]);
++        c0 += type_convert<int32_t>(a_vector.AsType<int8_t>()[i]) *
++             type_convert<int32_t>(b0_vector.AsType<int8_t>()[i]);
++        c1 += type_convert<int32_t>(a_vector.AsType<int8_t>()[i]) *
++             type_convert<int32_t>(b1_vector.AsType<int8_t>()[i]);
 +    });
 +#endif
  }
  
  // c0 += inner_product(a, b0)
-@@ -259,6 +350,7 @@
+@@ -239,6 +352,7 @@
                                                 int32_t& c2,
                                                 int32_t& c3)
  {
@@ -245,7 +246,7 @@
  #if 1
      asm volatile("\n \
              v_dot4_i32_i8 %0, %4, %5, %0\n \
-@@ -282,6 +374,21 @@
+@@ -262,6 +376,25 @@
      c2     = __builtin_amdgcn_sdot4(bit_cast<int32_t>(a), bit_cast<int32_t>(b2), c2, false);
      c3     = __builtin_amdgcn_sdot4(bit_cast<int32_t>(a), bit_cast<int32_t>(b3), c3, false);
  #endif
@@ -258,10 +259,14 @@
 +
 +    #pragma omp parallel for reduction(+:c0,c1,c2,c3)
 +    static_for<0, 4, 1>{}([&](auto i) {
-+        c0 += static_cast<int32_t>(a_vector[i]) * static_cast<int32_t>(b0_vector[i]);
-+        c1 += static_cast<int32_t>(a_vector[i]) * static_cast<int32_t>(b1_vector[i]);
-+        c2 += static_cast<int32_t>(a_vector[i]) * static_cast<int32_t>(b2_vector[i]);
-+        c3 += static_cast<int32_t>(a_vector[i]) * static_cast<int32_t>(b3_vector[i]);
++        c0 += type_convert<int32_t>(a_vector.AsType<int8_t>()[i]) *
++             type_convert<int32_t>(b0_vector.AsType<int8_t>()[i]);
++        c1 += type_convert<int32_t>(a_vector.AsType<int8_t>()[i]) *
++             type_convert<int32_t>(b1_vector.AsType<int8_t>()[i]);
++        c2 += type_convert<int32_t>(a_vector.AsType<int8_t>()[i]) *
++             type_convert<int32_t>(b2_vector.AsType<int8_t>()[i]);
++        c3 += type_convert<int32_t>(a_vector.AsType<int8_t>()[i]) *
++             type_convert<int32_t>(b3_vector.AsType<int8_t>()[i]);
 +    });
 +#endif
  }
