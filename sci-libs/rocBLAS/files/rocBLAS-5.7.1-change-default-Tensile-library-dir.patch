@@ -1,0 +1,49 @@
+change the default rocm tensile library search path
+Index: rocBLAS-rocm-5.4.0/library/src/tensile_host.cpp
+===================================================================
+--- ./library/src/tensile_host.cpp~	2023-09-08 16:06:24.000000000 +0100
++++ ./library/src/tensile_host.cpp	2023-11-23 22:44:24.363615309 +0000
+@@ -631,42 +631,7 @@
+                 // Find the location of librocblas.dll/.so
+                 // Fall back on hard-coded path if static library or not found
+ 
+-#ifndef ROCBLAS_STATIC_LIB
+-#ifdef WIN32
+-                // wchar_t wpath[MAX_PATH + 1] = {0};
+-                // if(GetModuleFileNameW(GetModuleHandle("rocblas.dll"), wpath, MAX_PATH + 1))
+-                // {
+-                //     std::wstring          wspath(wpath);
+-                //     std::string           tmp(wspath.begin(), wspath.end());
+-
+-                std::vector<TCHAR> dll_path(MAX_PATH + 1);
+-                if(GetModuleFileNameA(
+-                       GetModuleHandleA("rocblas.dll"), dll_path.data(), MAX_PATH + 1))
+-                {
+-                    std::string           tmp(dll_path.begin(), dll_path.end());
+-                    std::filesystem::path exepath = tmp;
+-                    if(exepath.has_filename())
+-                    {
+-                        path = exepath.remove_filename().string();
+-                    }
+-                }
+-#else
+-                dl_iterate_phdr(rocblas_dl_iterate_phdr_callback, NULL);
+-                if(rocblas_so_path.size())
+-                    path = std::string{dirname(&rocblas_so_path[0])};
+-#endif
+-#endif // ifndef ROCBLAS_STATIC_LIB
+-
+-                // Find the location of the libraries
+-                if(TestPath(path + "/../../Tensile/library"))
+-                    path += "/../../Tensile/library";
+-                else if(TestPath(path + "/library"))
+-                    path += "/library";
+-                else
+-                    path += "/rocblas/library";
+-
+-                if(TestPath(path + "/" + processor))
+-                    path += "/" + processor;
++				path="@GENTOO_PORTAGE_EPREFIX@/usr/lib64/rocblas/library";
+             }
+ 
+ #ifdef TENSILE_YAML

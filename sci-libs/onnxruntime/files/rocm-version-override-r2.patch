@@ -1,0 +1,15 @@
+--- ./CMakeLists.txt~	2023-11-22 17:47:00.000000000 +0000
++++ ./CMakeLists.txt	2023-11-22 17:52:20.897248998 +0000
+@@ -315,7 +315,11 @@
+ 
+   # replicate strategy used by pytorch to get ROCM_VERSION
+   # https://github.com/pytorch/pytorch/blob/8eb21488fdcdb8b0e6fa2e46179b5fa6c42e75af/cmake/public/LoadHIP.cmake#L153-L173
+-  file(READ "${onnxruntime_ROCM_HOME}/.info/version-dev" ROCM_VERSION_DEV_RAW)
++  if (NOT DEFINED ENV{ROCM_VERSION})
++    file(READ "${onnxruntime_ROCM_HOME}/.info/version-dev" ROCM_VERSION_DEV_RAW)
++  else()
++    set(ROCM_VERSION_DEV_RAW $ENV{ROCM_VERSION})
++  endif()
+   string(REGEX MATCH "^([0-9]+)\.([0-9]+)\.([0-9]+)-.*$" ROCM_VERSION_DEV_MATCH ${ROCM_VERSION_DEV_RAW})
+   if (ROCM_VERSION_DEV_MATCH)
+     set(ROCM_VERSION_DEV_MAJOR ${CMAKE_MATCH_1})

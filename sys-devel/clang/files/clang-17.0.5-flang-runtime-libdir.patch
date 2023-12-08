@@ -1,0 +1,11 @@
+--- ./clang/lib/Driver/ToolChains/CommonArgs.cpp~	2023-11-29 14:31:33.000000000 +0000
++++ ./clang/lib/Driver/ToolChains/CommonArgs.cpp	2023-11-29 14:32:44.935176535 +0000
+@@ -955,7 +955,7 @@
+   // lib64 instead of lib.
+   SmallString<256> DefaultLibPath =
+       llvm::sys::path::parent_path(TC.getDriver().Dir);
+-  llvm::sys::path::append(DefaultLibPath, "lib");
++  llvm::sys::path::append(DefaultLibPath, CLANG_INSTALL_LIBDIR_BASENAME);
+   if (TC.getTriple().isKnownWindowsMSVCEnvironment())
+     CmdArgs.push_back(Args.MakeArgString("-libpath:" + DefaultLibPath));
+   else

@@ -1,0 +1,25 @@
+--- ./flang/runtime/CMakeLists.txt~	2023-11-29 00:16:16.000000000 +0000
++++ ./flang/runtime/CMakeLists.txt	2023-11-29 00:17:09.169840083 +0000
+@@ -204,11 +204,6 @@
+   if (NOT FLANG_EXPERIMENTAL_OMP_OFFLOAD_BUILD STREQUAL "host_device")
+     message(FATAL_ERROR "Unsupported OpenMP offload build of Flang runtime")
+   endif()
+-  if (BUILD_SHARED_LIBS)
+-    message(FATAL_ERROR
+-      "BUILD_SHARED_LIBS is not supported for OpenMP offload build of Fortran runtime"
+-      )
+-  endif()
+ 
+   if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND
+       "${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
+--- ./flang/runtime/CMakeLists.txt~	2023-11-29 10:54:45.000000000 +0000
++++ ./flang/runtime/CMakeLists.txt	2023-11-29 10:55:11.135161185 +0000
+@@ -243,6 +243,8 @@
+       "${OMP_COMPILE_OPTIONS}"
+       )
+ 
++    add_link_options("${OMP_COMPILE_OPTIONS}")
++
+     # Enable "declare target" in the source code.
+     set_source_files_properties(${supported_files}
+       PROPERTIES COMPILE_DEFINITIONS OMP_OFFLOAD_BUILD

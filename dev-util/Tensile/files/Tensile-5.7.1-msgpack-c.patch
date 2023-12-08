@@ -1,0 +1,11 @@
+--- ./Tensile/Source/lib/CMakeLists.txt~	2023-07-14 06:27:45.000000000 +0100
++++ ./Tensile/Source/lib/CMakeLists.txt	2023-11-23 23:39:06.936952452 +0000
+@@ -98,7 +98,7 @@
+ endif()
+ 
+ if(TENSILE_USE_MSGPACK)
+-    find_package(msgpack REQUIRED)
++    find_package(msgpack-c REQUIRED)
+     target_compile_definitions(TensileHost PUBLIC -DTENSILE_MSGPACK=1)
+ 
+     if(TARGET msgpackc-cxx)

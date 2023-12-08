@@ -1,0 +1,11 @@
+--- ./library/src/CMakeLists.txt~	2023-11-26 22:35:30.000000000 +0000
++++ ./library/src/CMakeLists.txt	2023-11-26 22:47:03.760712116 +0000
+@@ -461,8 +461,6 @@
+ # architectures.  Less common architectures are filtered out from the
+ # list and kernels for them are built at runtime instead.
+ set( AMDGPU_TARGETS_AOT ${AMDGPU_TARGETS} )
+-list( REMOVE_ITEM AMDGPU_TARGETS_AOT gfx803 )
+-list( REMOVE_ITEM AMDGPU_TARGETS_AOT gfx900 )
+ add_custom_command(
+   OUTPUT rocfft_kernel_cache.db
+   COMMAND rocfft_aot_helper \"${ROCFFT_BUILD_KERNEL_CACHE_PATH}\" ${ROCFFT_KERNEL_CACHE_PATH} $<TARGET_FILE:rocfft_rtc_helper> ${AMDGPU_TARGETS_AOT}

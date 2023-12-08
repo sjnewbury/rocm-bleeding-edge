@@ -60,6 +60,11 @@ pkg_setup() {
 	python-single-r1_pkg_setup
 }
 
+#src_prepare() {
+#	cmake_src_prepare
+#	sed -i -e '/^#define __STDC_LIMIT_MACROS/d' bindings/interfaces.swig || die
+#}
+
 src_configure() {
 	# LLVM_ENABLE_ASSERTIONS=NO does not guarantee this for us, #614844
 	use debug || local -x CPPFLAGS="${CPPFLAGS} -DNDEBUG"

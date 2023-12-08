@@ -153,12 +153,12 @@ multilib_src_install() {
 	cmake_src_install
 
 	if has "${CHOST%%-*}" aarch64 powerpc64le x86_64; then
-		# Install bitcode which doesn't get installed otherwise
-		# (libm/libhostrpc)
-		insinto /usr/$(get_libdir)
-		doins *.bc
-
 		if use offload && use llvm_targets_AMDGPU; then
+			# Install bitcode which doesn't get installed otherwise
+			# (libm/libhostrpc)
+			insinto /usr/$(get_libdir)
+			doins *.bc
+
 			# Clang can't find it otherwise!
 			dodir $(get_llvm_prefix)/lib
 			mv ${ED}/usr/$(get_libdir)/*.bc ${ED}/$(get_llvm_prefix)/lib || die moving bitcode failed

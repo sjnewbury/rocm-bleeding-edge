@@ -1,0 +1,34 @@
+--- ./src/CMakeLists.txt~	2023-07-14 00:43:46.000000000 +0100
++++ ./src/CMakeLists.txt	2023-12-07 12:41:58.328881639 +0000
+@@ -232,15 +232,15 @@
+ target_link_libraries(roctracer_tool util roctracer hsa-runtime64::hsa-runtime64 stdc++fs Threads::Threads atomic dl)
+ target_link_options(roctracer_tool PRIVATE -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/tracer_tool/exportmap -Wl,--no-undefined)
+ 
+-install(TARGETS roctracer_tool LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME} COMPONENT runtime)
+-install(TARGETS roctracer_tool LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME} COMPONENT asan)
++install(TARGETS roctracer_tool LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime)
++install(TARGETS roctracer_tool LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT asan)
+ 
+ add_library(hip_stats SHARED hip_stats/hip_stats.cpp)
+ set_target_properties(hip_stats PROPERTIES  INSTALL_RPATH "${ROCM_APPEND_PRIVLIB_RPATH}")
+ target_compile_definitions(hip_stats PRIVATE __HIP_PLATFORM_AMD__)
+ target_link_libraries(hip_stats roctracer stdc++fs)
+-install(TARGETS hip_stats LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME} COMPONENT runtime)
+-install(TARGETS hip_stats LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME} COMPONENT asan)
++install(TARGETS hip_stats LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT runtime)
++install(TARGETS hip_stats LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT asan)
+ 
+ endif()
+ 
+--- ./plugin/file/CMakeLists.txt~	2023-07-14 00:43:46.000000000 +0100
++++ ./plugin/file/CMakeLists.txt	2023-12-07 12:42:56.662214847 +0000
+@@ -47,9 +47,7 @@
+ target_link_libraries(file_plugin PRIVATE util roctracer  amd_comgr hsa-runtime64::hsa-runtime64 stdc++fs amd_comgr)
+ 
+ install(TARGETS file_plugin LIBRARY
+-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
+         COMPONENT runtime)
+ 
+ install(TARGETS file_plugin LIBRARY
+-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
+         COMPONENT asan)

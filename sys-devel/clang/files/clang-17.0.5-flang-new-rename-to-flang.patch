@@ -1,0 +1,101 @@
+diff --git a/clang/lib/Driver/Driver.cpp b/clang/lib/Driver/Driver.cpp
+--- a/clang/lib/Driver/Driver.cpp
++++ b/clang/lib/Driver/Driver.cpp
+@@ -1809,7 +1809,7 @@
+ 
+ void Driver::PrintVersion(const Compilation &C, raw_ostream &OS) const {
+   if (IsFlangMode()) {
+-    OS << getClangToolFullVersion("flang-new") << '\n';
++    OS << getClangToolFullVersion("flang") << '\n';
+   } else {
+     // FIXME: The following handlers should use a callback mechanism, we don't
+     // know what the client would like to do.
+diff --git a/clang/lib/Driver/ToolChain.cpp b/clang/lib/Driver/ToolChain.cpp
+--- a/clang/lib/Driver/ToolChain.cpp
++++ b/clang/lib/Driver/ToolChain.cpp
+@@ -181,7 +181,12 @@
+       {"cpp", "--driver-mode=cpp"},
+       {"cl", "--driver-mode=cl"},
+       {"++", "--driver-mode=g++"},
++      // Flang's driver name is configured with CMake's FLANG_USE_LEGACY_NAME.
++      // Both `flang` and `flang-new` are currently supported, so there are 2
++      // suffixes for Flang in this list. `flang-new` will be removed in the
++      // future.
+       {"flang", "--driver-mode=flang"},
++      {"flang-new", "--driver-mode=flang"},
+       {"clang-dxc", "--driver-mode=dxc"},
+   };
+ 
+diff --git a/clang/lib/Driver/ToolChains/Flang.cpp b/clang/lib/Driver/ToolChains/Flang.cpp
+--- a/clang/lib/Driver/ToolChains/Flang.cpp
++++ b/clang/lib/Driver/ToolChains/Flang.cpp
+@@ -158,14 +158,16 @@
+ 
+   CmdArgs.push_back(Input.getFilename());
+ 
+-  // TODO: Replace flang-new with flang once the new driver replaces the
+-  // throwaway driver
+-  const char *Exec = Args.MakeArgString(D.GetProgramPath("flang-new", TC));
++  // Get the name of this executable. The `getClangProgramPath` hook predates
++  // Flang, hence the name assumes that it's a Clang program. In practice, it
++  // can be any program (e.g. a Flang program) implemented in terms of
++  // `clangDriver`.
++  const char *Exec = D.getClangProgramPath();
+   C.addCommand(std::make_unique<Command>(JA, *this,
+                                          ResponseFileSupport::AtFileUTF8(),
+                                          Exec, CmdArgs, Inputs, Output));
+ }
+ 
+-Flang::Flang(const ToolChain &TC) : Tool("flang-new", "flang frontend", TC) {}
++Flang::Flang(const ToolChain &TC) : Tool("flang", "flang frontend", TC) {}
+ 
+ Flang::~Flang() {}
+diff --git a/clang/test/Driver/flang/flang.f90 b/clang/test/Driver/flang/flang.f90
+--- a/clang/test/Driver/flang/flang.f90
++++ b/clang/test/Driver/flang/flang.f90
+@@ -13,7 +13,7 @@
+ ! * (no type specified, resulting in an object file)
+ 
+ ! All invocations should begin with flang -fc1, consume up to here.
+-! ALL-LABEL: "{{[^"]*}}flang-new{{[^"/]*}}" "-fc1"
++! ALL-LABEL: "{{[^"]*}}flang{{[^"/]*}}" "-fc1"
+ 
+ ! Check that f90 files are not treated as "previously preprocessed"
+ ! ... in --driver-mode=flang.
+diff --git a/clang/test/Driver/flang/flang_ucase.F90 b/clang/test/Driver/flang/flang_ucase.F90
+--- a/clang/test/Driver/flang/flang_ucase.F90
++++ b/clang/test/Driver/flang/flang_ucase.F90
+@@ -13,7 +13,7 @@
+ ! * (no type specified, resulting in an object file)
+ 
+ ! All invocations should begin with flang -fc1, consume up to here.
+-! ALL-LABEL: "{{[^"]*}}flang-new{{[^"/]*}}" "-fc1"
++! ALL-LABEL: "{{[^"]*}}flang{{[^"/]*}}" "-fc1"
+ 
+ ! Check that f90 files are not treated as "previously preprocessed"
+ ! ... in --driver-mode=flang.
+diff --git a/clang/test/Driver/flang/multiple-inputs-mixed.f90 b/clang/test/Driver/flang/multiple-inputs-mixed.f90
+--- a/clang/test/Driver/flang/multiple-inputs-mixed.f90
++++ b/clang/test/Driver/flang/multiple-inputs-mixed.f90
+@@ -1,7 +1,7 @@
+ ! Check that flang can handle mixed C and fortran inputs.
+ 
+ ! RUN: %clang --driver-mode=flang -### -fsyntax-only %S/Inputs/one.f90 %S/Inputs/other.c 2>&1 | FileCheck --check-prefixes=CHECK-SYNTAX-ONLY %s
+-! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}flang-new{{[^"/]*}}" "-fc1"
++! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}flang{{[^"/]*}}" "-fc1"
+ ! CHECK-SYNTAX-ONLY: "{{[^"]*}}/Inputs/one.f90"
+ ! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}clang{{[^"/]*}}" "-cc1"
+ ! CHECK-SYNTAX-ONLY: "{{[^"]*}}/Inputs/other.c"
+diff --git a/clang/test/Driver/flang/multiple-inputs.f90 b/clang/test/Driver/flang/multiple-inputs.f90
+--- a/clang/test/Driver/flang/multiple-inputs.f90
++++ b/clang/test/Driver/flang/multiple-inputs.f90
+@@ -1,7 +1,7 @@
+ ! Check that flang driver can handle multiple inputs at once.
+ 
+ ! RUN: %clang --driver-mode=flang -### -fsyntax-only %S/Inputs/one.f90 %S/Inputs/two.f90 2>&1 | FileCheck --check-prefixes=CHECK-SYNTAX-ONLY %s
+-! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}flang-new{{[^"/]*}}" "-fc1"
++! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}flang{{[^"/]*}}" "-fc1"
+ ! CHECK-SYNTAX-ONLY: "{{[^"]*}}/Inputs/one.f90"
+-! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}flang-new{{[^"/]*}}" "-fc1"
++! CHECK-SYNTAX-ONLY-LABEL: "{{[^"]*}}flang{{[^"/]*}}" "-fc1"
+ ! CHECK-SYNTAX-ONLY: "{{[^"]*}}/Inputs/two.f90"

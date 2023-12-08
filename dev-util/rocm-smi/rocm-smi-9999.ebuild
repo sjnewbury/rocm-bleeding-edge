@@ -3,7 +3,7 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{8..10} )
+PYTHON_COMPAT=( python3_{9..12} )
 
 inherit cmake multilib prefix python-r1 python-utils-r1
 
@@ -30,15 +30,7 @@ RDEPEND="${PYTHON_DEPS}"
 BDEPEND=""
 
 src_prepare() {
-	sed -e "/DESTINATION/s,\${OAM_NAME}/lib,$(get_libdir)," \
-		-e "/DESTINATION/s,oam/include/oam,include/oam," -i oam/CMakeLists.txt || die
-	sed -e "/link DESTINATION/,+1d" \
-		-e "/DESTINATION/s,\${ROCM_SMI}/lib,$(get_libdir)," \
-		-e "/bindings_link/,+3d" \
-		-e "/rsmiBindings.py/,+1d" \
-		-e "/DESTINATION/s,rocm_smi/include/rocm_smi,include/rocm_smi," -i rocm_smi/CMakeLists.txt || die
-	sed -e "/LICENSE.txt/d" -e "s,\${ROCM_SMI}/lib/cmake,$(get_libdir)/cmake,g" -i CMakeLists.txt || die
-	sed -e "/^path_librocm = /c\path_librocm = '${EPREFIX}/usr/lib64/librocm_smi64.so'" -i python_smi_tools/rsmiBindings.py || die
+	sed -e "/^path_librocm = /c\path_librocm = '${EPREFIX}/usr/lib64/librocm_smi64.so'" -i python_smi_tools/rsmiBindings.py.in || die
 	cmake_src_prepare
 }
 
@@ -51,6 +43,6 @@ src_configure() {
 
 src_install() {
 	cmake_src_install
-	python_foreach_impl python_newexe python_smi_tools/rocm_smi.py rocm-smi
+	python_foreach_impl python_newscript python_smi_tools/rocm_smi.py rocm-smi
 	python_foreach_impl python_domodule python_smi_tools/rsmiBindings.py
 }

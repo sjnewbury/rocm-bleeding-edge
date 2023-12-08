@@ -1,0 +1,11 @@
+--- ./CMakeLists.txt~	2023-11-22 17:58:24.000000000 +0000
++++ ./CMakeLists.txt	2023-11-22 17:59:49.123928409 +0000
+@@ -281,7 +281,7 @@
+   endif()
+ 
+   if (NOT CMAKE_HIP_ARCHITECTURES)
+-    set(CMAKE_HIP_ARCHITECTURES "gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101")
++    set(CMAKE_HIP_ARCHITECTURES "gfx900;gfx906;gfx908;gfx90a;gfx1030;gfx1100;gfx1101")
+   endif()
+ 
+   file(GLOB rocm_cmake_components ${onnxruntime_ROCM_HOME}/${CMAKE_INSTALL_LIBDIR}/cmake/*)

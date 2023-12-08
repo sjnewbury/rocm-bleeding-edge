@@ -1,0 +1,11 @@
+--- ./flang/CMakeLists.txt~	2023-11-29 11:19:46.000000000 +0000
++++ ./flang/CMakeLists.txt	2023-11-29 11:21:11.411830039 +0000
+@@ -236,7 +236,7 @@
+ # tco tool and FIR lib output directories
+ if(FLANG_STANDALONE_BUILD)
+   set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
+-  set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
++  set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX})
+ endif()
+ # Always build tco tool
+ set(LLVM_BUILD_TOOLS ON)
