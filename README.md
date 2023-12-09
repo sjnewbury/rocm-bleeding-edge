@@ -16,7 +16,7 @@ conjunction with my "gentoo-gpu" overlay.
 
 
 ### Status
-Tested and working with AMD RX Vega 64
+Tested and working with AMD RX Vega 64 (gfx900)
 
 Builds for Raven Ridge (gfx902) but there's currently a
 runtime issue initialiasing with the HSA Agent not
