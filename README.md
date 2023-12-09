@@ -1,5 +1,5 @@
 # rocm-bleeding-edge
-##Completely unofficial Gentoo ROCm support
+## Completely unofficial Gentoo ROCm support
 
 This overlay is maintained against current/next ROCm
 LLVM downstream and replaces the system LLVM packages
