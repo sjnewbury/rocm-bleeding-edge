@@ -13,3 +13,13 @@ guarantee it will work.
 
 For GCC/Offloading support, use this overlay in
 conjunction with my "gentoo-gpu" overlay.
+
+
+### Status
+Tested and working with AMD RX Vega 64
+
+Builds for Raven Ridge (gfx902) but there's currently a
+runtime issue initialiasing with the HSA Agent not
+reporting the "Cache info" for the GPU.  I'm not sure
+if this is a problem in the ROCR runtime or the kernel
+kfd driver.
