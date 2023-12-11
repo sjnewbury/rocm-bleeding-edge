@@ -23,7 +23,8 @@ runtime issue initialiasing with the HSA Agent not
 reporting the "Cache info" for the GPU.  I'm not sure
 if this is a problem in the ROCR runtime or the kernel
 kfd driver.~~
-#Update:
+
+# Update:
 gfx902 works with kernel 6.6.6, at least it passes a simple
 compute test, however it then causes the GPU to trigger
 a reset loop, at least when running under KDE Wayland.
