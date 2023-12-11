@@ -18,8 +18,13 @@ conjunction with my "gentoo-gpu" overlay.
 ### Status
 Tested and working with AMD RX Vega 64 (gfx900)
 
-Builds for Raven Ridge (gfx902) but there's currently a
+~~Builds for Raven Ridge (gfx902) but there's currently a
 runtime issue initialiasing with the HSA Agent not
 reporting the "Cache info" for the GPU.  I'm not sure
 if this is a problem in the ROCR runtime or the kernel
-kfd driver.
+kfd driver.~~
+#Update:
+gfx902 works with kernel 6.6.6, at least it passes a simple
+compute test, however it then causes the GPU to trigger
+a reset loop, at least when running under KDE Wayland.
+(Under investigation)
