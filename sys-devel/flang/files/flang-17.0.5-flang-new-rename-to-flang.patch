@@ -1,3 +1,11 @@
+From: Steven Newbury <steve@snewbury.org.uk>
+Date: Thu 25 Jan 23:42:58 GMT 2024
+Subject: rename flang-new to flang
+
+This is a modified version of the patch submitted to the llvm
+bug tracker.
+
+---
 diff --git a/flang/CMakeLists.txt b/flang/CMakeLists.txt
 --- a/flang/CMakeLists.txt
 +++ b/flang/CMakeLists.txt

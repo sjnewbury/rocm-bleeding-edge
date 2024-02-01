@@ -1,0 +1,46 @@
+--- ./Tensile/Common.py~	2024-01-22 14:15:56.000000000 +0000
++++ ./Tensile/Common.py	2024-01-22 14:27:31.956999434 +0000
+@@ -201,7 +201,7 @@
+ 
+ globalParameters["MaxFileName"] = 64              # If a file name would be longer than this, shorten it with a hash.
+ globalParameters["SupportedISA"] = [(8,0,3),
+-                                    (9,0,0), (9,0,6), (9,0,8), (9,0,10),
++                                    (9,0,0), (9,0,2), (9,0,6), (9,0,8), (9,0,10),
+                                     (9,4,0), (9,4,1), (9,4,2),
+                                     (10,1,0), (10,1,1), (10,1,2), (10,3,0), (10,3,1),
+                                     (11,0,0), (11,0,1), (11,0,2)] # assembly kernels writer supports these architectures
+@@ -273,6 +273,7 @@
+ # Translate GPU targets to filter filenames in Tensile_LOGIC directory
+ architectureMap = {
+   'all':'_','gfx000':'none', 'gfx803':'r9nano', 'gfx900':'vega10', 'gfx900:xnack-':'vega10',
++  'gfx902':'raven', 'gfx902:xnack+':'raven', 'gfx902:xnack-':'raven',
+   'gfx906':'vega20', 'gfx906:xnack+':'vega20', 'gfx906:xnack-':'vega20',
+   'gfx908':'arcturus','gfx908:xnack+':'arcturus', 'gfx908:xnack-':'arcturus',
+   'gfx90a':'aldebaran', 'gfx90a:xnack+':'aldebaran', 'gfx90a:xnack-':'aldebaran',
+@@ -289,6 +289,7 @@
+ CACHED_ASM_CAPS = {
+   (8, 0, 3): {'SupportedISA': True, 'HasExplicitCO': False, 'HasExplicitNC': False, 'HasDirectToLdsDest': False, 'HasDirectToLdsNoDest': True, 'HasAddLshl': False, 'HasLshlOr': False, 'HasSMulHi': False, 'HasWMMA': False, 'HasMFMA': False, 'HasMFMA_constSrc': False, 'HasMFMA_vgpr': False, 'HasMFMA_f64': False, 'HasMFMA_bf16_original': False, 'HasMFMA_bf16_1k': False, 'HasMFMA_xf32': False, 'HasMFMA_f8': False, 'HasMFMA_b8': False, 'HasMFMA_i8_908': False, 'HasMFMA_i8_940': False, 'v_mac_f16': True, 'v_fma_f16': False, 'v_fmac_f16': False, 'v_pk_fma_f16': False, 'v_pk_fmac_f16': False, 'v_mad_mix_f32': False, 'v_fma_mix_f32': False, 'v_dot2_f32_f16': False, 'v_dot2c_f32_f16': False, 'v_dot4_i32_i8': False, 'v_dot4c_i32_i8': False, 'VOP3v_dot4_i32_i8': False, 'v_mac_f32': True, 'v_fma_f32': True, 'v_fmac_f32': False, 'v_fma_f64': True, 'HasAtomicAdd': False, 'HasGLCModifier': True, 'MaxVmcnt': 15, 'MaxLgkmcnt': 15, 'SupportedSource': True},
+   (9, 0, 0): {'SupportedISA': True, 'HasExplicitCO': True, 'HasExplicitNC': False, 'HasDirectToLdsDest': False, 'HasDirectToLdsNoDest': True, 'HasAddLshl': True, 'HasLshlOr': True, 'HasSMulHi': True, 'HasWMMA': False, 'HasMFMA': False, 'HasMFMA_constSrc': False, 'HasMFMA_vgpr': False, 'HasMFMA_f64': False, 'HasMFMA_bf16_original': False, 'HasMFMA_bf16_1k': False, 'HasMFMA_xf32': False, 'HasMFMA_f8': False, 'HasMFMA_b8': False, 'HasMFMA_i8_908': False, 'HasMFMA_i8_940': False, 'v_mac_f16': True, 'v_fma_f16': True, 'v_fmac_f16': False, 'v_pk_fma_f16': True, 'v_pk_fmac_f16': False, 'v_mad_mix_f32': True, 'v_fma_mix_f32': False, 'v_dot2_f32_f16': False, 'v_dot2c_f32_f16': False, 'v_dot4_i32_i8': False, 'v_dot4c_i32_i8': False, 'VOP3v_dot4_i32_i8': False, 'v_mac_f32': True, 'v_fma_f32': True, 'v_fmac_f32': False, 'v_fma_f64': True, 'HasAtomicAdd': False, 'HasGLCModifier': True, 'MaxVmcnt': 63, 'MaxLgkmcnt': 15, 'SupportedSource': True},
++  (9, 0, 2): {'SupportedISA': True, 'HasExplicitCO': True, 'HasExplicitNC': False, 'HasDirectToLdsDest': False, 'HasDirectToLdsNoDest': True, 'HasAddLshl': True, 'HasLshlOr': True, 'HasSMulHi': True, 'HasWMMA': False, 'HasMFMA': False, 'HasMFMA_constSrc': False, 'HasMFMA_vgpr': False, 'HasMFMA_f64': False, 'HasMFMA_bf16_original': False, 'HasMFMA_bf16_1k': False, 'HasMFMA_xf32': False, 'HasMFMA_f8': False, 'HasMFMA_b8': False, 'HasMFMA_i8_908': False, 'HasMFMA_i8_940': False, 'v_mac_f16': True, 'v_fma_f16': True, 'v_fmac_f16': False, 'v_pk_fma_f16': True, 'v_pk_fmac_f16': False, 'v_mad_mix_f32': True, 'v_fma_mix_f32': False, 'v_dot2_f32_f16': False, 'v_dot2c_f32_f16': False, 'v_dot4_i32_i8': False, 'v_dot4c_i32_i8': False, 'VOP3v_dot4_i32_i8': False, 'v_mac_f32': True, 'v_fma_f32': True, 'v_fmac_f32': False, 'v_fma_f64': True, 'HasAtomicAdd': False, 'HasGLCModifier': True, 'MaxVmcnt': 63, 'MaxLgkmcnt': 15, 'SupportedSource': True},
+   (9, 0, 6): {'SupportedISA': True, 'HasExplicitCO': True, 'HasExplicitNC': False, 'HasDirectToLdsDest': False, 'HasDirectToLdsNoDest': True, 'HasAddLshl': True, 'HasLshlOr': True, 'HasSMulHi': True, 'HasWMMA': False, 'HasMFMA': False, 'HasMFMA_constSrc': False, 'HasMFMA_vgpr': False, 'HasMFMA_f64': False, 'HasMFMA_bf16_original': False, 'HasMFMA_bf16_1k': False, 'HasMFMA_xf32': False, 'HasMFMA_f8': False, 'HasMFMA_b8': False, 'HasMFMA_i8_908': False, 'HasMFMA_i8_940': False, 'v_mac_f16': True, 'v_fma_f16': True, 'v_fmac_f16': False, 'v_pk_fma_f16': True, 'v_pk_fmac_f16': False, 'v_mad_mix_f32': False, 'v_fma_mix_f32': True, 'v_dot2_f32_f16': True, 'v_dot2c_f32_f16': False, 'v_dot4_i32_i8': False, 'v_dot4c_i32_i8': False, 'VOP3v_dot4_i32_i8': True, 'v_mac_f32': True, 'v_fma_f32': True, 'v_fmac_f32': True, 'v_fma_f64': True, 'HasAtomicAdd': False, 'HasGLCModifier': True, 'MaxVmcnt': 63, 'MaxLgkmcnt': 15, 'SupportedSource': True},
+   (9, 0, 8): {'SupportedISA': True, 'HasExplicitCO': True, 'HasExplicitNC': False, 'HasDirectToLdsDest': False, 'HasDirectToLdsNoDest': True, 'HasAddLshl': True, 'HasLshlOr': True, 'HasSMulHi': True, 'HasWMMA': False, 'HasMFMA': True, 'HasMFMA_constSrc': False, 'HasMFMA_vgpr': False, 'HasMFMA_f64': False, 'HasMFMA_bf16_original': True, 'HasMFMA_bf16_1k': False, 'HasMFMA_xf32': False, 'HasMFMA_f8': False, 'HasMFMA_b8': False, 'HasMFMA_i8_908': True, 'HasMFMA_i8_940': False, 'v_mac_f16': True, 'v_fma_f16': True, 'v_fmac_f16': False, 'v_pk_fma_f16': True, 'v_pk_fmac_f16': False, 'v_mad_mix_f32': False, 'v_fma_mix_f32': True, 'v_dot2_f32_f16': True, 'v_dot2c_f32_f16': True, 'v_dot4_i32_i8': False, 'v_dot4c_i32_i8': True, 'VOP3v_dot4_i32_i8': True, 'v_mac_f32': True, 'v_fma_f32': True, 'v_fmac_f32': True, 'v_fma_f64': True, 'HasAtomicAdd': True, 'HasGLCModifier': True, 'MaxVmcnt': 63, 'MaxLgkmcnt': 15, 'SupportedSource': True},
+   (9, 0, 10): {'SupportedISA': True, 'HasExplicitCO': True, 'HasExplicitNC': False, 'HasDirectToLdsDest': False, 'HasDirectToLdsNoDest': True, 'HasAddLshl': True, 'HasLshlOr': True, 'HasSMulHi': True, 'HasWMMA': False, 'HasMFMA': True, 'HasMFMA_constSrc': True, 'HasMFMA_vgpr': True, 'HasMFMA_f64': True, 'HasMFMA_bf16_original': True, 'HasMFMA_bf16_1k': True, 'HasMFMA_xf32': False, 'HasMFMA_f8': False, 'HasMFMA_b8': False, 'HasMFMA_i8_908': True, 'HasMFMA_i8_940': False, 'v_mac_f16': True, 'v_fma_f16': True, 'v_fmac_f16': False, 'v_pk_fma_f16': True, 'v_pk_fmac_f16': False, 'v_mad_mix_f32': False, 'v_fma_mix_f32': True, 'v_dot2_f32_f16': True, 'v_dot2c_f32_f16': True, 'v_dot4_i32_i8': False, 'v_dot4c_i32_i8': True, 'VOP3v_dot4_i32_i8': True, 'v_mac_f32': True, 'v_fma_f32': True, 'v_fmac_f32': True, 'v_fma_f64': True, 'HasAtomicAdd': True, 'HasGLCModifier': True, 'MaxVmcnt': 63, 'MaxLgkmcnt': 15, 'SupportedSource': True},
+--- ./Tensile/Source/lib/include/Tensile/AMDGPU.hpp~	2023-07-14 06:27:45.000000000 +0100
++++ ./Tensile/Source/lib/include/Tensile/AMDGPU.hpp	2023-12-04 00:07:53.960049978 +0000
+@@ -56,6 +56,7 @@
+             //gfx802  =  3,
+             gfx803  = 803,
+             gfx900  = 900,
++            gfx902  = 902,
+             gfx906  = 906,
+             gfx908  = 908,
+             gfx90a  = 910,
+@@ -84,6 +84,8 @@
+                 return "gfx803";
+             case AMDGPU::Processor::gfx900:
+                 return "gfx900";
++            case AMDGPU::Processor::gfx902:
++                return "gfx902";
+             case AMDGPU::Processor::gfx906:
+                 return "gfx906";
+             case AMDGPU::Processor::gfx908:

@@ -26,11 +26,11 @@ PATCHES=(
 
 RDEPEND="dev-util/hip"
 DEPEND="${RDEPEND}
-	dev-util/rocm-cmake
+	dev-build/rocm-cmake
 	benchmark? ( dev-cpp/benchmark )
 	test? ( dev-cpp/gtest )"
-BDEPEND="dev-util/rocm-cmake
-	>=dev-util/cmake-3.22"
+BDEPEND="dev-build/rocm-cmake
+	>=dev-build/cmake-3.22"
 
 S="${WORKDIR}/rocRAND-rocm-${PV}"
 

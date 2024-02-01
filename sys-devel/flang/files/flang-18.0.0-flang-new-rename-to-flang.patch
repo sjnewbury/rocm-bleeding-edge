@@ -1,0 +1,1409 @@
+From 3294f3412086393025c5a7e89a30e314d4bcd9f0 Mon Sep 17 00:00:00 2001
+From: Steven Newbury <steve@snewbury.org.uk>
+Date: Tue, 30 Jan 2024 12:15:32 +0000
+Subject: [PATCH] Rename "flang-new" to "flang"
+
+---
+ flang/CMakeLists.txt                          |  2 +
+ flang/docs/FlangDriver.md                     | 91 +++++++++----------
+ flang/docs/ImplementingASemanticCheck.md      |  4 +-
+ flang/docs/Overview.md                        | 26 +++---
+ .../FlangOmpReport/FlangOmpReport.cpp         |  2 +-
+ flang/lib/Frontend/CompilerInvocation.cpp     |  6 +-
+ flang/lib/Frontend/FrontendActions.cpp        |  2 +-
+ .../ExecuteCompilerInvocation.cpp             |  2 +-
+ flang/test/CMakeLists.txt                     |  3 +-
+ .../Driver/color-diagnostics-forwarding.f90   |  4 +-
+ flang/test/Driver/compiler_options.f90        |  4 +-
+ flang/test/Driver/convert.f90                 |  2 +-
+ .../test/Driver/disable-ext-name-interop.f90  |  2 +-
+ flang/test/Driver/driver-help-hidden.f90      |  6 +-
+ flang/test/Driver/driver-version.f90          |  4 +-
+ flang/test/Driver/escaped-backslash.f90       |  4 +-
+ flang/test/Driver/fdefault.f90                | 28 +++---
+ flang/test/Driver/flarge-sizes.f90            | 20 ++--
+ flang/test/Driver/frontend-forwarding.f90     |  4 +-
+ flang/test/Driver/intrinsic-module-path.f90   |  2 +-
+ flang/test/Driver/lto-flags.f90               |  2 +-
+ flang/test/Driver/macro-def-undef.F90         |  4 +-
+ flang/test/Driver/missing-input.f90           | 14 +--
+ flang/test/Driver/multiple-input-files.f90    |  2 +-
+ flang/test/Driver/omp-driver-offload.f90      | 52 +++++------
+ .../predefined-macros-compiler-version.F90    |  4 +-
+ flang/test/Driver/std2018-wrong.f90           |  2 +-
+ flang/test/Driver/std2018.f90                 |  2 +-
+ .../Driver/supported-suffices/f03-suffix.f03  |  2 +-
+ .../Driver/supported-suffices/f08-suffix.f08  |  2 +-
+ flang/test/Driver/use-module-error.f90        |  4 +-
+ flang/test/Driver/use-module.f90              |  4 +-
+ flang/test/Driver/version-loops.f90           | 18 ++--
+ flang/test/Driver/wextra-ok.f90               |  2 +-
+ flang/test/HLFIR/hlfir-flags.f90              |  2 +-
+ .../Intrinsics/command_argument_count.f90     |  4 +-
+ flang/test/Lower/Intrinsics/exit.f90          |  2 +-
+ .../test/Lower/Intrinsics/ieee_is_normal.f90  |  2 +-
+ flang/test/Lower/Intrinsics/isnan.f90         |  2 +-
+ .../OpenMP/Todo/omp-declarative-allocate.f90  |  2 +-
+ .../OpenMP/Todo/omp-declare-reduction.f90     |  2 +-
+ .../Lower/OpenMP/Todo/omp-declare-simd.f90    |  2 +-
+ .../parallel-lastprivate-clause-scalar.f90    |  2 +-
+ flang/test/lit.cfg.py                         | 10 +-
+ flang/test/lit.site.cfg.py.in                 |  1 +
+ flang/tools/f18/CMakeLists.txt                |  8 +-
+ flang/tools/flang-driver/CMakeLists.txt       | 22 +++--
+ flang/tools/flang-driver/driver.cpp           |  9 +-
+ 48 files changed, 211 insertions(+), 191 deletions(-)
+
+diff --git a/flang/CMakeLists.txt b/flang/CMakeLists.txt
+index f81d3e33fe86..69e82942af69 100644
+--- a/flang/CMakeLists.txt
++++ b/flang/CMakeLists.txt
+@@ -428,6 +428,8 @@ add_subdirectory(include)
+ add_subdirectory(lib)
+ add_subdirectory(cmake/modules)
+ 
++option(FLANG_USE_LEGACY_NAME "Use the legacy name, flang-new, for the Flang driver." ON)
++
+ option(FLANG_BUILD_TOOLS
+   "Build the Flang tools. If OFF, just generate build targets." ON)
+ if (FLANG_BUILD_TOOLS)
+diff --git a/flang/docs/FlangDriver.md b/flang/docs/FlangDriver.md
+index 5231e78335f6..cc10087b5df9 100644
+--- a/flang/docs/FlangDriver.md
++++ b/flang/docs/FlangDriver.md
+@@ -15,17 +15,13 @@ local:
+ ```
+ 
+ There are two main drivers in Flang:
+-* the compiler driver, `flang-new`
+-* the frontend driver, `flang-new -fc1`
+-
+-> **_NOTE:_** The diagrams in this document refer to `flang` as opposed to
+-> `flang-new`. Eventually, `flang-new` will be renamed as `flang` and the
+-> diagrams reflect the final design that we are still working towards.
++* the compiler driver, `flang`
++* the frontend driver, `flang -fc1`
+ 
+ The **compiler driver** will allow you to control all compilation phases (e.g.
+ preprocessing, semantic checks, code-generation, code-optimisation, lowering
+ and linking). For frontend specific tasks, the compiler driver creates a
+-Fortran compilation job and delegates it to `flang-new -fc1`, the frontend
++Fortran compilation job and delegates it to `flang -fc1`, the frontend
+ driver. For linking, it creates a linker job and calls an external linker (e.g.
+ LLVM's [`lld`](https://lld.llvm.org/)). It can also call other tools such as
+ external assemblers (e.g. [`as`](https://www.gnu.org/software/binutils/)). In
+@@ -47,7 +43,7 @@ frontend. It uses MLIR and LLVM for code-generation and can be viewed as a
+ driver for Flang, LLVM and MLIR libraries. Contrary to the compiler driver, it
+ is not capable of calling any external tools (including linkers).  It is aware
+ of all the frontend internals that are "hidden" from the compiler driver. It
+-accepts many frontend-specific options not available in `flang-new` and as such
++accepts many frontend-specific options not available in `flang` and as such
+ it provides a finer control over the frontend. Note that this tool is mostly
+ intended for Flang developers. In particular, there are no guarantees about the
+ stability of its interface and compiler developers can use it to experiment
+@@ -62,30 +58,30 @@ frontend specific flag from the _compiler_ directly to the _frontend_ driver,
+ e.g.:
+ 
+ ```bash
+-flang-new -Xflang -fdebug-dump-parse-tree input.f95
++flang -Xflang -fdebug-dump-parse-tree input.f95
+ ```
+ 
+-In the invocation above, `-fdebug-dump-parse-tree` is forwarded to `flang-new
++In the invocation above, `-fdebug-dump-parse-tree` is forwarded to `flang
+ -fc1`. Without the forwarding flag, `-Xflang`, you would see the following
+ warning:
+ 
+ ```bash
+-flang-new: warning: argument unused during compilation:
++flang: warning: argument unused during compilation:
+ ```
+ 
+-As `-fdebug-dump-parse-tree` is only supported by `flang-new -fc1`, `flang-new`
++As `-fdebug-dump-parse-tree` is only supported by `flang -fc1`, `flang`
+ will ignore it when used without `Xflang`.
+ 
+ ## Why Do We Need Two Drivers?
+-As hinted above, `flang-new` and `flang-new -fc1` are two separate tools. The
+-fact that these tools are accessed through one binary, `flang-new`, is just an
++As hinted above, `flang` and `flang -fc1` are two separate tools. The
++fact that these tools are accessed through one binary, `flang`, is just an
+ implementation detail. Each tool has a separate list of options, albeit defined
+ in the same file: `clang/include/clang/Driver/Options.td`.
+ 
+ The separation helps us split various tasks and allows us to implement more
+-specialised tools. In particular, `flang-new` is not aware of various
++specialised tools. In particular, `flang` is not aware of various
+ compilation phases within the frontend (e.g. scanning, parsing or semantic
+-checks). It does not have to be. Conversely, the frontend driver, `flang-new
++checks). It does not have to be. Conversely, the frontend driver, `flang
+ -fc1`, needs not to be concerned with linkers or other external tools like
+ assemblers. Nor does it need to know where to look for various systems
+ libraries, which is usually OS and platform specific.
+@@ -104,7 +100,7 @@ GCC](https://en.wikibooks.org/wiki/GNU_C_Compiler_Internals/GNU_C_Compiler_Archi
+ In fact, Flang needs to adhere to this model in order to be able to re-use
+ Clang's driver library. If you are more familiar with the [architecture of
+ GFortran](https://gcc.gnu.org/onlinedocs/gcc-4.7.4/gfortran/About-GNU-Fortran.html)
+-than Clang, then `flang-new` corresponds to `gfortran` and `flang-new -fc1` to
++than Clang, then `flang` corresponds to `gfortran` and `flang -fc1` to
+ `f951`.
+ 
+ ## Compiler Driver
+@@ -135,7 +131,7 @@ output from one action is the input for the subsequent one. You can use the
+ `-ccc-print-phases` flag to see the sequence of actions that the driver will
+ create for your compiler invocation:
+ ```bash
+-flang-new -ccc-print-phases -E file.f
++flang -ccc-print-phases -E file.f
+ +- 0: input, "file.f", f95-cpp-input
+ 1: preprocessor, {0}, f95
+ ```
+@@ -143,7 +139,7 @@ As you can see, for `-E` the driver creates only two jobs and stops immediately
+ after preprocessing. The first job simply prepares the input. For `-c`, the
+ pipeline of the created jobs is more complex:
+ ```bash
+-flang-new -ccc-print-phases -c file.f
++flang -ccc-print-phases -c file.f
+          +- 0: input, "file.f", f95-cpp-input
+       +- 1: preprocessor, {0}, f95
+    +- 2: compiler, {1}, ir
+@@ -158,7 +154,7 @@ command to call the frontend driver is generated (more specifically, an
+ instance of `clang::driver::Command`). Every command is bound to an instance of
+ `clang::driver::Tool`. For Flang we introduced a specialisation of this class:
+ `clang::driver::Flang`. This class implements the logic to either translate or
+-forward compiler options to the frontend driver, `flang-new -fc1`.
++forward compiler options to the frontend driver, `flang -fc1`.
+ 
+ You can read more on the design of `clangDriver` in Clang's [Driver Design &
+ Internals](https://clang.llvm.org/docs/DriverInternals.html).
+@@ -193,26 +189,29 @@ driver, `clang -cc1` and consists of the following classes:
+ This list is not exhaustive and only covers the main classes that implement the
+ driver. The main entry point for the frontend driver, `fc1_main`, is
+ implemented in `flang/tools/flang-driver/driver.cpp`. It can be accessed by
+-invoking the compiler driver, `flang-new`, with the `-fc1` flag.
++invoking the compiler driver, `flang`, with the `-fc1` flag.
+ 
+ The frontend driver will only run one action at a time. If you specify multiple
+ action flags, only the last one will be taken into account. The default action
+ is `ParseSyntaxOnlyAction`, which corresponds to `-fsyntax-only`. In other
+-words, `flang-new -fc1 <input-file>` is equivalent to `flang-new -fc1 -fsyntax-only
++words, `flang -fc1 <input-file>` is equivalent to `flang -fc1 -fsyntax-only
+ <input-file>`.
+ 
+ ## The `flang-to-external-fc` script
+-The `flang-to-external-fc` wrapper script for `flang-new` was introduced as a
+-development tool and to facilitate testing. The `flang-to-external-fc` wrapper
+-script will:
+-* use `flang-new` to unparse the input source file (i.e. it will run `flang-new
+-  -fc1 -fdebug-unparse <input-file>`), and then
++The `flang-to-external-fc` wrapper script for `flang` was introduced as a
++development tool and to facilitate testing. While code-generation is not
++available in Flang, you can use it as a drop-in replacement for other Fortran
++compilers in your build scripts.
++
++The `flang-to-external-fc` wrapper script will:
++* use `flang` to unparse the input source file (i.e. it will run `flang -fc1
++  -fdebug-unparse <input-file>`), and then
+ * call a host Fortran compiler, e.g. `gfortran`, to compile the unparsed file.
+ 
+ Here's a basic breakdown of what happens inside `flang-to-external-fc` when you
+ run `flang-to-external-fc file.f90`:
+ ```bash
+-flang-new -fc1 -fdebug-unparse file.f90 -o file-unparsed.f90
++flang -fc1 -fdebug-unparse file.f90 -o file-unparsed.f90
+ gfortran file-unparsed.f90
+ ```
+ This is a simplified version for illustration purposes only. In practice,
+@@ -243,8 +242,8 @@ similar semantics to your new option and start by copying that.
+ For every new option, you will also have to define the visibility of the new
+ option. This is controlled through the `Visibility` field. You can use the
+ following Flang specific visibility flags to control this:
+-  * `FlangOption` - this option will be available in the `flang-new` compiler driver,
+-  * `FC1Option` - this option will be available in the `flang-new -fc1` frontend driver,
++  * `FlangOption` - this option will be available in the `flang` compiler driver,
++  * `FC1Option` - this option will be available in the `flang -fc1` frontend driver,
+ 
+ Options that are supported by clang should explicitly specify `ClangOption` in
+ `Visibility`, and options that are only supported in Flang should not specify
+@@ -271,11 +270,11 @@ The parsing will depend on the semantics encoded in the TableGen definition.
+ 
+ When adding a compiler driver option (i.e. an option that contains
+ `FlangOption` among in it's `Visibility`) that you also intend to be understood
+-by the frontend, make sure that it is either forwarded to `flang-new -fc1` or
++by the frontend, make sure that it is either forwarded to `flang -fc1` or
+ translated into some other option that is accepted by the frontend driver. In
+ the case of options that contain both `FlangOption` and `FC1Option` among its
+-flags, we usually just forward from `flang-new` to `flang-new -fc1`. This is
+-then tested in `flang/test/Driver/frontend-forward.F90`.
++flags, we usually just forward from `flang` to `flang -fc1`. This is then
++tested in `flang/test/Driver/frontend-forward.F90`.
+ 
+ What follows is usually very dependant on the meaning of the corresponding
+ option. In general, regular compiler flags (e.g. `-ffree-form`) are mapped to
+@@ -320,11 +319,11 @@ just added using your new frontend option.
+ 
+ # CMake Support
+ As of [#7246](https://gitlab.kitware.com/cmake/cmake/-/merge_requests/7246)
+-(and soon to be released CMake 3.24.0), `cmake` can detect `flang-new` as a
++(and soon to be released CMake 3.24.0), `cmake` can detect `flang` as a
+ supported Fortran compiler. You can configure your CMake projects to use
+-`flang-new` as follows:
++`flang` as follows:
+ ```bash
+-cmake -DCMAKE_Fortran_COMPILER=<path/to/flang-new> <src/dir>
++cmake -DCMAKE_Fortran_COMPILER=<path/to/flang> <src/dir>
+ ```
+ You should see the following in the output:
+ ```
+@@ -334,14 +333,14 @@ where `<version>` corresponds to the LLVM Flang version.
+ 
+ # Testing
+ In LIT, we define two variables that you can use to invoke Flang's drivers:
+-* `%flang` is expanded as `flang-new` (i.e. the compiler driver)
+-* `%flang_fc1` is expanded as `flang-new -fc1` (i.e. the frontend driver)
++* `%flang` is expanded as `flang` (i.e. the compiler driver)
++* `%flang_fc1` is expanded as `flang -fc1` (i.e. the frontend driver)
+ 
+ For most regression tests for the frontend, you will want to use `%flang_fc1`.
+ In some cases, the observable behaviour will be identical regardless of whether
+ `%flang` or `%flang_fc1` is used. However, when you are using `%flang` instead
+ of `%flang_fc1`, the compiler driver will add extra flags to the frontend
+-driver invocation (i.e. `flang-new -fc1 -<extra-flags>`). In some cases that might
++driver invocation (i.e. `flang -fc1 -<extra-flags>`). In some cases that might
+ be exactly what you want to test.  In fact, you can check these additional
+ flags by using the `-###` compiler driver command line option.
+ 
+@@ -361,7 +360,7 @@ plugins. The process for using plugins includes:
+ * [Creating a plugin](#creating-a-plugin)
+ * [Loading and running a plugin](#loading-and-running-a-plugin)
+ 
+-Flang plugins are limited to `flang-new -fc1` and are currently only available /
++Flang plugins are limited to `flang -fc1` and are currently only available /
+ been tested on Linux.
+ 
+ ## Creating a Plugin
+@@ -446,14 +445,14 @@ static FrontendPluginRegistry::Add<PrintFunctionNamesAction> X(
+ 
+ ## Loading and Running a Plugin
+ In order to use plugins, there are 2 command line options made available to the
+-frontend driver, `flang-new -fc1`:
++frontend driver, `flang -fc1`:
+ * [`-load <dsopath>`](#the--load-dsopath-option) for loading the dynamic shared
+   object of the plugin
+ * [`-plugin <name>`](#the--plugin-name-option) for calling the registered plugin
+ 
+ Invocation of the example plugin is done through:
+ ```bash
+-flang-new -fc1 -load flangPrintFunctionNames.so -plugin print-fns file.f90
++flang -fc1 -load flangPrintFunctionNames.so -plugin print-fns file.f90
+ ```
+ 
+ Both these options are parsed in `flang/lib/Frontend/CompilerInvocation.cpp` and
+@@ -474,7 +473,7 @@ reports an error diagnostic and returns `nullptr`.
+ 
+ ## Enabling In-Tree Plugins
+ For in-tree plugins, there is the CMake flag `FLANG_PLUGIN_SUPPORT`, enabled by
+-default, that controls the exporting of executable symbols from `flang-new`,
++default, that controls the exporting of executable symbols from `flang`,
+ which plugins need access to. Additionally, there is the CMake flag
+ `LLVM_BUILD_EXAMPLES`, turned off by default, that is used to control if the
+ example programs are built. This includes plugins that are in the
+@@ -510,7 +509,7 @@ documentation for
+ [`llvm::PassBuilder`](https://llvm.org/doxygen/classllvm_1_1PassBuilder.html)
+ for details.
+ 
+-The framework to enable pass plugins in `flang-new` uses the exact same
++The framework to enable pass plugins in `flang` uses the exact same
+ machinery as that used by `clang` and thus has the same capabilities and
+ limitations.
+ 
+@@ -518,7 +517,7 @@ In order to use a pass plugin, the pass(es) must be compiled into a dynamic
+ shared object which is then loaded using the `-fpass-plugin` option.
+ 
+ ```
+-flang-new -fpass-plugin=/path/to/plugin.so <file.f90>
++flang -fpass-plugin=/path/to/plugin.so <file.f90>
+ ```
+ 
+ This option is available in both the compiler driver and the frontend driver.
+@@ -530,7 +529,7 @@ Pass extensions are similar to plugins, except that they can also be linked
+ statically. Setting `-DLLVM_${NAME}_LINK_INTO_TOOLS` to `ON` in the cmake
+ command turns the project into a statically linked extension. An example would
+ be Polly, e.g., using `-DLLVM_POLLY_LINK_INTO_TOOLS=ON` would link Polly passes
+-into `flang-new` as built-in middle-end passes.
++into `flang` as built-in middle-end passes.
+ 
+ See the
+ [`WritingAnLLVMNewPMPass`](https://llvm.org/docs/WritingAnLLVMNewPMPass.html#id9)
+diff --git a/flang/docs/ImplementingASemanticCheck.md b/flang/docs/ImplementingASemanticCheck.md
+index 5b583d4f8031..598ef696ad14 100644
+--- a/flang/docs/ImplementingASemanticCheck.md
++++ b/flang/docs/ImplementingASemanticCheck.md
+@@ -68,7 +68,7 @@ of the call to `intentOutFunc()`:
+ 
+ I also used this program to produce a parse tree for the program using the command:
+ ```bash
+-  flang-new -fc1 -fdebug-dump-parse-tree testfun.f90
++  flang -fc1 -fdebug-dump-parse-tree testfun.f90
+ ```
+ 
+ Here's the relevant fragment of the parse tree produced by the compiler:
+@@ -296,7 +296,7 @@ In `lib/Semantics/check-do.cpp`, I added an (almost empty) implementation:
+ I then built the compiler with these changes and ran it on my test program.
+ This time, I made sure to invoke semantic checking.  Here's the command I used:
+ ```bash
+-  flang-new -fc1 -fdebug-unparse-with-symbols testfun.f90
++  flang -fc1 -fdebug-unparse-with-symbols testfun.f90
+ ```
+ 
+ This produced the output:
+diff --git a/flang/docs/Overview.md b/flang/docs/Overview.md
+index 561e9cfcf95c..a52ecc2c53ba 100644
+--- a/flang/docs/Overview.md
++++ b/flang/docs/Overview.md
+@@ -65,8 +65,8 @@ See [Preprocessing.md](Preprocessing.md).
+ **Entry point:** `parser::Parsing::Prescan`
+ 
+ **Commands:** 
+- - `flang-new -fc1 -E src.f90` dumps the cooked character stream
+- - `flang-new -fc1 -fdebug-dump-provenance src.f90` dumps provenance
++ - `flang -fc1 -E src.f90` dumps the cooked character stream
++ - `flang -fc1 -fdebug-dump-provenance src.f90` dumps provenance
+    information
+ 
+ ## Parsing
+@@ -80,10 +80,10 @@ representing a syntactically correct program, rooted at the program unit.  See:
+ **Entry point:** `parser::Parsing::Parse`
+ 
+ **Commands:**
+-  - `flang-new -fc1 -fdebug-dump-parse-tree-no-sema src.f90` dumps the parse tree
+-  - `flang-new -fc1 -fdebug-unparse src.f90` converts the parse tree to normalized Fortran
+-  - `flang-new -fc1 -fdebug-dump-parsing-log src.f90` runs an instrumented parse and dumps the log
+-  - `flang-new -fc1 -fdebug-measure-parse-tree src.f90` measures the parse tree
++  - `flang -fc1 -fdebug-dump-parse-tree-no-sema src.f90` dumps the parse tree
++  - `flang -fc1 -fdebug-unparse src.f90` converts the parse tree to normalized Fortran
++  - `flang -fc1 -fdebug-dump-parsing-log src.f90` runs an instrumented parse and dumps the log
++  - `flang -fc1 -fdebug-measure-parse-tree src.f90` measures the parse tree
+ 
+ ## Semantic processing
+ 
+@@ -121,9 +121,9 @@ In the course of semantic analysis, the compiler:
+ At the end of semantic processing, all validation of the user's program is complete.  This is the last detailed phase of analysis processing.
+ 
+ **Commands:**
+-  - `flang-new -fc1 -fdebug-dump-parse-tree src.f90` dumps the parse tree after semantic analysis
+-  - `flang-new -fc1 -fdebug-dump-symbols src.f90` dumps the symbol table
+-  - `flang-new -fc1 -fdebug-dump-all src.f90` dumps both the parse tree and the symbol table
++  - `flang -fc1 -fdebug-dump-parse-tree src.f90` dumps the parse tree after semantic analysis
++  - `flang -fc1 -fdebug-dump-symbols src.f90` dumps the symbol table
++  - `flang -fc1 -fdebug-dump-all src.f90` dumps both the parse tree and the symbol table
+ 
+ # Lowering
+ 
+@@ -163,8 +163,8 @@ contain a list of evaluations.  All of these contain pointers back into the
+ parse tree.  The compiler walks the PFT generating FIR.
+ 
+ **Commands:**
+-  - `flang-new -fc1 -fdebug-dump-pft src.f90` dumps the pre-FIR tree
+-  - `flang-new -fc1 -emit-mlir src.f90` dumps the FIR to the files src.mlir
++  - `flang -fc1 -fdebug-dump-pft src.f90` dumps the pre-FIR tree
++  - `flang -fc1 -emit-mlir src.f90` dumps the FIR to the files src.mlir
+ 
+ ## Transformation passes
+ 
+@@ -180,8 +180,8 @@ perform various optimizations and transformations.  The final pass creates an
+ LLVM IR representation of the program.
+ 
+ **Commands:**
+-  - `flang-new -mmlir --mlir-print-ir-after-all -S src.f90` dumps the FIR code after each pass to standard error
+-  - `flang-new -fc1 -emit-llvm src.f90` dumps the LLVM IR to src.ll
++  - `flang -mmlir --mlir-print-ir-after-all -S src.f90` dumps the FIR code after each pass to standard error
++  - `flang -fc1 -emit-llvm src.f90` dumps the LLVM IR to src.ll
+ 
+ # Object code generation and linking
+ 
+diff --git a/flang/examples/FlangOmpReport/FlangOmpReport.cpp b/flang/examples/FlangOmpReport/FlangOmpReport.cpp
+index 9c1f304b9741..709c5c5d305e 100644
+--- a/flang/examples/FlangOmpReport/FlangOmpReport.cpp
++++ b/flang/examples/FlangOmpReport/FlangOmpReport.cpp
+@@ -9,7 +9,7 @@
+ // all the OpenMP constructs and clauses and which line they're located on.
+ //
+ // The plugin may be invoked as:
+-// ./bin/flang-new -fc1 -load lib/flangOmpReport.so -plugin flang-omp-report
++// ./bin/flang -fc1 -load lib/flangOmpReport.so -plugin flang-omp-report
+ // -fopenmp
+ //
+ //===----------------------------------------------------------------------===//
+diff --git a/flang/lib/Frontend/CompilerInvocation.cpp b/flang/lib/Frontend/CompilerInvocation.cpp
+index e7730d50dc1b..4b0ef80fefc3 100644
+--- a/flang/lib/Frontend/CompilerInvocation.cpp
++++ b/flang/lib/Frontend/CompilerInvocation.cpp
+@@ -63,8 +63,8 @@ CompilerInvocationBase::~CompilerInvocationBase() = default;
+ static bool parseShowColorsArgs(const llvm::opt::ArgList &args,
+                                 bool defaultColor = true) {
+   // Color diagnostics default to auto ("on" if terminal supports) in the
+-  // compiler driver `flang-new` but default to off in the frontend driver
+-  // `flang-new -fc1`, needing an explicit OPT_fdiagnostics_color.
++  // compiler driver `flang` but default to off in the frontend driver
++  // `flang -fc1`, needing an explicit OPT_fdiagnostics_color.
+   // Support both clang's -f[no-]color-diagnostics and gcc's
+   // -f[no-]diagnostics-colors[=never|always|auto].
+   enum {
+@@ -818,7 +818,7 @@ static bool parseDiagArgs(CompilerInvocation &res, llvm::opt::ArgList &args,
+     }
+   }
+ 
+-  // Default to off for `flang-new -fc1`.
++  // Default to off for `flang -fc1`.
+   res.getFrontendOpts().showColors =
+       parseShowColorsArgs(args, /*defaultDiagColor=*/false);
+ 
+diff --git a/flang/lib/Frontend/FrontendActions.cpp b/flang/lib/Frontend/FrontendActions.cpp
+index 1be95cc27f42..97500c52898a 100644
+--- a/flang/lib/Frontend/FrontendActions.cpp
++++ b/flang/lib/Frontend/FrontendActions.cpp
+@@ -334,7 +334,7 @@ bool CodeGenAction::beginSourceFileAction() {
+     llvm::SMDiagnostic err;
+     llvmModule = llvm::parseIRFile(getCurrentInput().getFile(), err, *llvmCtx);
+     if (!llvmModule || llvm::verifyModule(*llvmModule, &llvm::errs())) {
+-      err.print("flang-new", llvm::errs());
++      err.print("flang", llvm::errs());
+       unsigned diagID = ci.getDiagnostics().getCustomDiagID(
+           clang::DiagnosticsEngine::Error, "Could not parse IR");
+       ci.getDiagnostics().Report(diagID);
+diff --git a/flang/lib/FrontendTool/ExecuteCompilerInvocation.cpp b/flang/lib/FrontendTool/ExecuteCompilerInvocation.cpp
+index bc09dec17b7a..bf7ceeeb923a 100644
+--- a/flang/lib/FrontendTool/ExecuteCompilerInvocation.cpp
++++ b/flang/lib/FrontendTool/ExecuteCompilerInvocation.cpp
+@@ -152,7 +152,7 @@ bool executeCompilerInvocation(CompilerInstance *flang) {
+   // Honor -help.
+   if (flang->getFrontendOpts().showHelp) {
+     clang::driver::getDriverOptTable().printHelp(
+-        llvm::outs(), "flang-new -fc1 [options] file...",
++        llvm::outs(), "flang -fc1 [options] file...",
+         "LLVM 'Flang' Compiler",
+         /*ShowHidden=*/false, /*ShowAllAliases=*/false,
+         llvm::opt::Visibility(clang::driver::options::FC1Option));
+diff --git a/flang/test/CMakeLists.txt b/flang/test/CMakeLists.txt
+index 7d96a72e5f36..2dd090c039c1 100644
+--- a/flang/test/CMakeLists.txt
++++ b/flang/test/CMakeLists.txt
+@@ -7,6 +7,7 @@ llvm_canonicalize_cmake_booleans(
+   LLVM_BUILD_EXAMPLES
+   LLVM_BYE_LINK_INTO_TOOLS
+   LLVM_ENABLE_PLUGINS
++  FLANG_USE_LEGACY_NAME
+ )
+ 
+ set(FLANG_TOOLS_DIR ${FLANG_BINARY_DIR}/bin)
+@@ -48,7 +49,7 @@ set(FLANG_TEST_PARAMS
+   flang_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
+ 
+ set(FLANG_TEST_DEPENDS
+-  flang-new
++  flang
+   llvm-config
+   FileCheck
+   count
+diff --git a/flang/test/Driver/color-diagnostics-forwarding.f90 b/flang/test/Driver/color-diagnostics-forwarding.f90
+index daef17cb7578..41835fe642d9 100644
+--- a/flang/test/Driver/color-diagnostics-forwarding.f90
++++ b/flang/test/Driver/color-diagnostics-forwarding.f90
+@@ -1,5 +1,5 @@
+-! Test that flang-new forwards -f{no-}color-diagnostics options to
+-! flang-new -fc1 as expected.
++! Test that flang forwards -f{no-}color-diagnostics options to
++! flang -fc1 as expected.
+ 
+ ! RUN: %flang -fsyntax-only -### %s -o %t 2>&1 -fcolor-diagnostics \
+ ! RUN:   | FileCheck %s --check-prefix=CHECK-CD
+diff --git a/flang/test/Driver/compiler_options.f90 b/flang/test/Driver/compiler_options.f90
+index 3edebb915c09..cf874249b90b 100644
+--- a/flang/test/Driver/compiler_options.f90
++++ b/flang/test/Driver/compiler_options.f90
+@@ -1,6 +1,6 @@
+ ! RUN: %flang -S -emit-llvm -flang-deprecated-no-hlfir -o - %s | FileCheck %s
+-! Test communication of COMPILER_OPTIONS from flang-new to flang-new -fc1.
+-! CHECK: [[OPTSVAR:@_QQclX[0-9a-f]+]] = {{[a-z]+}} constant [[[OPTSLEN:[0-9]+]] x i8] c"{{.*}}flang-new{{(\.exe)?}} -S -emit-llvm -flang-deprecated-no-hlfir -o - {{.*}}compiler_options.f90"
++! Test communication of COMPILER_OPTIONS from flang to flang -fc1.
++! CHECK: [[OPTSVAR:@_QQclX[0-9a-f]+]] = {{[a-z]+}} constant [[[OPTSLEN:[0-9]+]] x i8] c"{{.*}}flang{{(\.exe)?}} -S -emit-llvm -flang-deprecated-no-hlfir -o - {{.*}}compiler_options.f90"
+ program main
+     use ISO_FORTRAN_ENV, only: compiler_options
+     implicit none
+diff --git a/flang/test/Driver/convert.f90 b/flang/test/Driver/convert.f90
+index b2cf6c23efdb..0ba31d2188cd 100755
+--- a/flang/test/Driver/convert.f90
++++ b/flang/test/Driver/convert.f90
+@@ -12,7 +12,7 @@
+ ! RUN: not %flang -fconvert=foobar %s  2>&1 | FileCheck %s --check-prefix=INVALID
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -emit-mlir -fconvert=unknown %s -o - | FileCheck %s --check-prefix=VALID_FC1
+ ! RUN: %flang_fc1 -emit-mlir -fconvert=native %s -o - | FileCheck %s --check-prefix=VALID_FC1
+diff --git a/flang/test/Driver/disable-ext-name-interop.f90 b/flang/test/Driver/disable-ext-name-interop.f90
+index 0c59a5b4c980..1ade84b996d0 100644
+--- a/flang/test/Driver/disable-ext-name-interop.f90
++++ b/flang/test/Driver/disable-ext-name-interop.f90
+@@ -1,4 +1,4 @@
+-! Test that we can disable the ExternalNameConversion pass in flang-new.
++! Test that we can disable the ExternalNameConversion pass in flang.
+ 
+ ! RUN: %flang_fc1 -S %s -o - 2>&1 | FileCheck %s --check-prefix=EXTNAMES
+ ! RUN: %flang_fc1 -S -mmlir -disable-external-name-interop %s -o - 2>&1 | FileCheck %s --check-prefix=INTNAMES
+diff --git a/flang/test/Driver/driver-help-hidden.f90 b/flang/test/Driver/driver-help-hidden.f90
+index f420f1ef3290..ebb8a7eda3cb 100644
+--- a/flang/test/Driver/driver-help-hidden.f90
++++ b/flang/test/Driver/driver-help-hidden.f90
+@@ -1,17 +1,17 @@
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: %flang --help-hidden 2>&1 | FileCheck %s
+ ! RUN: not %flang  -help-hidden 2>&1 | FileCheck %s --check-prefix=ERROR-FLANG
+ 
+ !----------------------------------------
+-! FLANG FRONTEND DRIVER (flang-new -fc1)
++! FLANG FRONTEND DRIVER (flang -fc1)
+ !----------------------------------------
+ ! RUN: not %flang_fc1 --help-hidden 2>&1 | FileCheck %s --check-prefix=ERROR-FLANG-FC1
+ ! RUN: not %flang_fc1  -help-hidden 2>&1 | FileCheck %s --check-prefix=ERROR-FLANG-FC1
+ 
+-! CHECK:USAGE: flang-new
++! CHECK:USAGE: flang
+ ! CHECK-EMPTY:
+ ! CHECK-NEXT: DRIVER OPTIONS:
+ ! CHECK-NEXT:  --driver-mode=<value> Set the driver mode to either 'gcc', 'g++', 'cpp', 'cl' or 'flang'
+diff --git a/flang/test/Driver/driver-version.f90 b/flang/test/Driver/driver-version.f90
+index d1e1e1d90fe1..4c6aecb1c4fa 100644
+--- a/flang/test/Driver/driver-version.f90
++++ b/flang/test/Driver/driver-version.f90
+@@ -4,12 +4,12 @@
+ ! RUN: %flang_fc1 -version 2>&1 | FileCheck %s --check-prefix=VERSION-FC1
+ ! RUN: not %flang_fc1 --version 2>&1 | FileCheck %s --check-prefix=ERROR-FC1
+ 
+-! VERSION: flang-new version
++! VERSION: flang version
+ ! VERSION-NEXT: Target:
+ ! VERSION-NEXT: Thread model:
+ ! VERSION-NEXT: InstalledDir:
+ 
+-! ERROR: flang-new: error: unknown argument '--versions'; did you mean '--version'?
++! ERROR: flang: error: unknown argument '--versions'; did you mean '--version'?
+ 
+ ! VERSION-FC1: LLVM version
+ 
+diff --git a/flang/test/Driver/escaped-backslash.f90 b/flang/test/Driver/escaped-backslash.f90
+index ad07eae24e9f..90dd1783dd11 100644
+--- a/flang/test/Driver/escaped-backslash.f90
++++ b/flang/test/Driver/escaped-backslash.f90
+@@ -1,14 +1,14 @@
+ ! Ensure argument -fbackslash works as expected.
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: %flang -E %s  2>&1 | FileCheck %s --check-prefix=ESCAPED
+ ! RUN: %flang -E -fbackslash -fno-backslash %s  2>&1 | FileCheck %s --check-prefix=ESCAPED
+ ! RUN: %flang -E -fbackslash %s  2>&1 | FileCheck %s --check-prefix=UNESCAPED
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -E %s  2>&1 | FileCheck %s --check-prefix=ESCAPED
+ ! RUN: %flang_fc1 -E -fbackslash -fno-backslash %s  2>&1 | FileCheck %s --check-prefix=ESCAPED
+diff --git a/flang/test/Driver/fdefault.f90 b/flang/test/Driver/fdefault.f90
+index 88592bfa3e87..7ce45b763a24 100644
+--- a/flang/test/Driver/fdefault.f90
++++ b/flang/test/Driver/fdefault.f90
+@@ -2,25 +2,25 @@
+ ! TODO: Add checks when actual codegen is possible for this family
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang -fsyntax-only -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=NOOPTION
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang -fsyntax-only -fdefault-real-8 -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=REAL8
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang -fsyntax-only -fdefault-real-8 -fdefault-double-8 -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=DOUBLE8
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang -fsyntax-only -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=NOOPTION
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang -fsyntax-only -fdefault-real-8 -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=REAL8
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang -fsyntax-only -fdefault-real-8 -fdefault-double-8 -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=DOUBLE8
+ ! RUN: not %flang -fsyntax-only -fdefault-double-8 %s  2>&1 | FileCheck %s --check-prefix=ERROR
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang_fc1 -fsyntax-only -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=NOOPTION
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang_fc1 -fsyntax-only -fdefault-real-8 -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=REAL8
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang_fc1 -fsyntax-only -fdefault-real-8 -fdefault-double-8 -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=DOUBLE8
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang_fc1 -fsyntax-only -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=NOOPTION
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang_fc1 -fsyntax-only -fdefault-real-8 -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=REAL8
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang_fc1 -fsyntax-only -fdefault-real-8 -fdefault-double-8 -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=DOUBLE8
+ ! RUN: not %flang_fc1 -fsyntax-only -fdefault-double-8 %s  2>&1 | FileCheck %s --check-prefix=ERROR
+ 
+ ! NOOPTION: integer(4),parameter::real_kind=4_4
+diff --git a/flang/test/Driver/flarge-sizes.f90 b/flang/test/Driver/flarge-sizes.f90
+index 6ea5876676ed..6c41a03a830b 100644
+--- a/flang/test/Driver/flarge-sizes.f90
++++ b/flang/test/Driver/flarge-sizes.f90
+@@ -2,20 +2,20 @@
+ ! TODO: Add checks when actual codegen is possible.
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang -fsyntax-only -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=NOLARGE
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang -fsyntax-only -flarge-sizes -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=LARGE
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang -fsyntax-only -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=NOLARGE
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang -fsyntax-only -flarge-sizes -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=LARGE
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang_fc1 -fsyntax-only -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=NOLARGE
+-! RUN: rm -rf %t/dir-flang-new  && mkdir -p %t/dir-flang-new && %flang_fc1 -fsyntax-only -flarge-sizes -module-dir %t/dir-flang-new %s  2>&1
+-! RUN: cat %t/dir-flang-new/m.mod | FileCheck %s --check-prefix=LARGE
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang_fc1 -fsyntax-only -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=NOLARGE
++! RUN: rm -rf %t/dir-flang  && mkdir -p %t/dir-flang && %flang_fc1 -fsyntax-only -flarge-sizes -module-dir %t/dir-flang %s  2>&1
++! RUN: cat %t/dir-flang/m.mod | FileCheck %s --check-prefix=LARGE
+ 
+ ! NOLARGE: real(4)::z(1_8:10_8)
+ ! NOLARGE-NEXT: integer(4),parameter::size_kind=4_4
+diff --git a/flang/test/Driver/frontend-forwarding.f90 b/flang/test/Driver/frontend-forwarding.f90
+index 8e9c9b78c3c1..03449625a35b 100644
+--- a/flang/test/Driver/frontend-forwarding.f90
++++ b/flang/test/Driver/frontend-forwarding.f90
+@@ -1,5 +1,5 @@
+-! Test that flang-new forwards Flang frontend
+-! options to flang-new -fc1 as expected.
++! Test that flang forwards Flang frontend
++! options to flang -fc1 as expected.
+ 
+ ! RUN: %flang -fsyntax-only -### %s -o %t 2>&1 \
+ ! RUN:     -finput-charset=utf-8 \
+diff --git a/flang/test/Driver/intrinsic-module-path.f90 b/flang/test/Driver/intrinsic-module-path.f90
+index 5523ed37b724..15d19dd83d96 100644
+--- a/flang/test/Driver/intrinsic-module-path.f90
++++ b/flang/test/Driver/intrinsic-module-path.f90
+@@ -4,7 +4,7 @@
+ ! default one, causing a CHECKSUM error.
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -fsyntax-only %s  2>&1 | FileCheck %s --allow-empty --check-prefix=WITHOUT
+ ! RUN: not %flang_fc1 -fsyntax-only -fintrinsic-modules-path %S/Inputs/ %s  2>&1 | FileCheck %s --check-prefix=GIVEN
+diff --git a/flang/test/Driver/lto-flags.f90 b/flang/test/Driver/lto-flags.f90
+index 2b3b08fbcc71..efb743d5d5cc 100644
+--- a/flang/test/Driver/lto-flags.f90
++++ b/flang/test/Driver/lto-flags.f90
+@@ -27,7 +27,7 @@
+ ! FULL-LTO: "-fc1"
+ ! FULL-LTO-SAME: "-flto=full"
+ 
+-! THIN-LTO-ALL: flang-new: warning: the option '-flto=thin' is a work in progress
++! THIN-LTO-ALL: flang: warning: the option '-flto=thin' is a work in progress
+ ! THIN-LTO-ALL: "-fc1"
+ ! THIN-LTO-ALL-SAME: "-flto=thin"
+ ! THIN-LTO-LINKER-PLUGIN: "-plugin-opt=thinlto"
+diff --git a/flang/test/Driver/macro-def-undef.F90 b/flang/test/Driver/macro-def-undef.F90
+index 1332c6d6c027..b13a9040833d 100644
+--- a/flang/test/Driver/macro-def-undef.F90
++++ b/flang/test/Driver/macro-def-undef.F90
+@@ -1,14 +1,14 @@
+ ! Ensure arguments -D and -U work as expected.
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: %flang -E -P %s  2>&1 | FileCheck %s --check-prefix=UNDEFINED
+ ! RUN: %flang -E -P -DX=A %s  2>&1 | FileCheck %s --check-prefix=DEFINED
+ ! RUN: %flang -E -P -DX=A -UX %s  2>&1 | FileCheck %s --check-prefix=UNDEFINED
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -E -P %s  2>&1 | FileCheck %s --check-prefix=UNDEFINED
+ ! RUN: %flang_fc1 -E -P -DX=A %s  2>&1 | FileCheck %s --check-prefix=DEFINED
+diff --git a/flang/test/Driver/missing-input.f90 b/flang/test/Driver/missing-input.f90
+index 236325e3578f..51d37a718c54 100644
+--- a/flang/test/Driver/missing-input.f90
++++ b/flang/test/Driver/missing-input.f90
+@@ -1,26 +1,26 @@
+ ! Test the behaviour of the driver when input is missing or is invalid. Note
+-! that with the compiler driver (flang-new), the input _has_ to be specified.
++! that with the compiler driver (flang), the input _has_ to be specified.
+ ! Indeed, the driver decides what "job/command" to create based on the input
+ ! file's extension. No input file means that it doesn't know what to do
+-! (compile?  preprocess? link?). The frontend driver (flang-new -fc1) simply
++! (compile?  preprocess? link?). The frontend driver (flang -fc1) simply
+ ! assumes that "no explicit input == read from stdin"
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: not %flang  2>&1 | FileCheck %s --check-prefix=FLANG-NO-FILE
+ ! RUN: not %flang %t.f90 2>&1 | FileCheck %s --check-prefix=FLANG-NONEXISTENT-FILE
+ 
+ !-----------------------------------------
+-! FLANG FRONTEND DRIVER (flang-new -fc1)
++! FLANG FRONTEND DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: not %flang_fc1 %t.f90 2>&1  | FileCheck %s --check-prefix=FLANG-FC1-NONEXISTENT-FILE
+ ! RUN: not %flang_fc1 %S 2>&1  | FileCheck %s --check-prefix=FLANG-FC1-DIR
+ 
+-! FLANG-NO-FILE: flang-new: error: no input files
++! FLANG-NO-FILE: flang: error: no input files
+ 
+-! FLANG-NONEXISTENT-FILE: flang-new: error: no such file or directory: {{.*}}
+-! FLANG-NONEXISTENT-FILE: flang-new: error: no input files
++! FLANG-NONEXISTENT-FILE: flang: error: no such file or directory: {{.*}}
++! FLANG-NONEXISTENT-FILE: flang: error: no input files
+ 
+ ! FLANG-FC1-NONEXISTENT-FILE: error: {{.*}} does not exist
+ ! FLANG-FC1-DIR: error: {{.*}} is not a regular file
+diff --git a/flang/test/Driver/multiple-input-files.f90 b/flang/test/Driver/multiple-input-files.f90
+index 6c86f23f2b21..64ec8679abf9 100644
+--- a/flang/test/Driver/multiple-input-files.f90
++++ b/flang/test/Driver/multiple-input-files.f90
+@@ -39,7 +39,7 @@
+ ! FLANG-NEXT:end program hello
+ 
+ ! TEST 2: `-o` does not when multiple input files are present
+-! ERROR: flang-new: error: cannot specify -o when generating multiple output files
++! ERROR: flang: error: cannot specify -o when generating multiple output files
+ 
+ ! TEST 3: The output file _was not_ specified - `flang_fc1` will process all
+ ! input files and generate one output file for every input file.
+diff --git a/flang/test/Driver/omp-driver-offload.f90 b/flang/test/Driver/omp-driver-offload.f90
+index ad50723b0e3a..af408d6a50d6 100644
+--- a/flang/test/Driver/omp-driver-offload.f90
++++ b/flang/test/Driver/omp-driver-offload.f90
+@@ -1,6 +1,6 @@
+-! Test that flang-new OpenMP and OpenMP offload related 
++! Test that flang OpenMP and OpenMP offload related 
+ ! commands forward or expand to the appropriate commands 
+-! for flang-new -fc1 as expected. Assumes a gfx90a, aarch64,
++! for flang -fc1 as expected. Assumes a gfx90a, aarch64,
+ ! and sm_70 architecture, but doesn't require one to be 
+ ! installed or compiled for, just testing the appropriate 
+ ! generation of jobs are created with the correct 
+@@ -8,8 +8,8 @@
+ 
+ ! Test regular -fopenmp with no offload
+ ! RUN: %flang -### -fopenmp %s 2>&1 | FileCheck --check-prefixes=CHECK-OPENMP %s
+-! CHECK-OPENMP: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}}.f90"
+-! CHECK-OPENMP-NOT: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" {{.*}}.f90"
++! CHECK-OPENMP: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}}.f90"
++! CHECK-OPENMP-NOT: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" {{.*}}.f90"
+ 
+ ! Test regular -fopenmp with offload, and invocation filtering options
+ ! RUN: %flang -S -### %s -o %t 2>&1 \
+@@ -22,44 +22,44 @@
+ ! RUN: --target=aarch64-unknown-linux-gnu \
+ ! RUN:   | FileCheck %s --check-prefix=OFFLOAD-HOST-AND-DEVICE
+ 
+-! OFFLOAD-HOST-AND-DEVICE: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
+-! OFFLOAD-HOST-AND-DEVICE-NEXT: "{{[^"]*}}flang-new" "-fc1" "-triple" "amdgcn-amd-amdhsa"
+-! OFFLOAD-HOST-AND-DEVICE-NEXT: "{{[^"]*}}flang-new" "-fc1" "-triple" "nvptx64-nvidia-cuda"
+-! OFFLOAD-HOST-AND-DEVICE: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
++! OFFLOAD-HOST-AND-DEVICE: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
++! OFFLOAD-HOST-AND-DEVICE-NEXT: "{{[^"]*}}flang" "-fc1" "-triple" "amdgcn-amd-amdhsa"
++! OFFLOAD-HOST-AND-DEVICE-NEXT: "{{[^"]*}}flang" "-fc1" "-triple" "nvptx64-nvidia-cuda"
++! OFFLOAD-HOST-AND-DEVICE: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
+ 
+ ! RUN: %flang -S -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a --offload-arch=sm_70 --offload-host-only \
+ ! RUN: --target=aarch64-unknown-linux-gnu \
+ ! RUN:   | FileCheck %s --check-prefix=OFFLOAD-HOST
+ 
+-! OFFLOAD-HOST: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
++! OFFLOAD-HOST: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
+ ! OFFLOAD-HOST-NOT: "-triple" "amdgcn-amd-amdhsa"
+ ! OFFLOAD-HOST-NOT: "-triple" "nvptx64-nvidia-cuda"
+-! OFFLOAD-HOST-NOT: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
++! OFFLOAD-HOST-NOT: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
+ 
+ ! RUN: %flang -S -### %s 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a --offload-arch=sm_70 --offload-device-only \
+ ! RUN: --target=aarch64-unknown-linux-gnu \
+ ! RUN:   | FileCheck %s --check-prefix=OFFLOAD-DEVICE
+ 
+-! OFFLOAD-DEVICE: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
+-! OFFLOAD-DEVICE-NEXT: "{{[^"]*}}flang-new" "-fc1" "-triple" "amdgcn-amd-amdhsa"
+-! OFFLOAD-DEVICE-NEXT: "{{[^"]*}}flang-new" "-fc1" "-triple" "nvptx64-nvidia-cuda"
+-! OFFLOAD-DEVICE-NOT: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
++! OFFLOAD-DEVICE: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
++! OFFLOAD-DEVICE-NEXT: "{{[^"]*}}flang" "-fc1" "-triple" "amdgcn-amd-amdhsa"
++! OFFLOAD-DEVICE-NEXT: "{{[^"]*}}flang" "-fc1" "-triple" "nvptx64-nvidia-cuda"
++! OFFLOAD-DEVICE-NOT: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu"
+ 
+ ! Test regular -fopenmp with offload for basic fopenmp-is-target-device flag addition and correct fopenmp 
+ ! RUN: %flang -### -fopenmp --offload-arch=gfx90a -fopenmp-targets=amdgcn-amd-amdhsa %s 2>&1 | FileCheck --check-prefixes=CHECK-OPENMP-IS-TARGET-DEVICE %s
+-! CHECK-OPENMP-IS-TARGET-DEVICE: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" {{.*}}.f90"
++! CHECK-OPENMP-IS-TARGET-DEVICE: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" {{.*}}.f90"
+ 
+ ! Testing appropriate flags are gnerated and appropriately assigned by the driver when offloading
+ ! RUN: %flang -S -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+ ! RUN: --target=aarch64-unknown-linux-gnu \
+ ! RUN:   | FileCheck %s --check-prefix=OPENMP-OFFLOAD-ARGS
+-! OPENMP-OFFLOAD-ARGS: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu" {{.*}} "-fopenmp" {{.*}}.f90"
+-! OPENMP-OFFLOAD-ARGS-NEXT: "{{[^"]*}}flang-new" "-fc1" "-triple" "amdgcn-amd-amdhsa" {{.*}} "-fopenmp" {{.*}} "-fopenmp-host-ir-file-path" "{{.*}}.bc" "-fopenmp-is-target-device" {{.*}}.f90"
++! OPENMP-OFFLOAD-ARGS: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu" {{.*}} "-fopenmp" {{.*}}.f90"
++! OPENMP-OFFLOAD-ARGS-NEXT: "{{[^"]*}}flang" "-fc1" "-triple" "amdgcn-amd-amdhsa" {{.*}} "-fopenmp" {{.*}} "-fopenmp-host-ir-file-path" "{{.*}}.bc" "-fopenmp-is-target-device" {{.*}}.f90"
+ ! OPENMP-OFFLOAD-ARGS: "{{[^"]*}}clang-offload-packager{{.*}}" {{.*}} "--image=file={{.*}}.bc,triple=amdgcn-amd-amdhsa,arch=gfx90a,kind=openmp"
+-! OPENMP-OFFLOAD-ARGS-NEXT: "{{[^"]*}}flang-new" "-fc1" "-triple" "aarch64-unknown-linux-gnu" {{.*}} "-fopenmp" {{.*}} "-fembed-offload-object={{.*}}.out" {{.*}}.bc"
++! OPENMP-OFFLOAD-ARGS-NEXT: "{{[^"]*}}flang" "-fc1" "-triple" "aarch64-unknown-linux-gnu" {{.*}} "-fopenmp" {{.*}} "-fembed-offload-object={{.*}}.out" {{.*}}.bc"
+ 
+ ! Test -fopenmp with offload for RTL Flag Options
+ ! RUN: %flang -### %s -o %t 2>&1 \
+@@ -72,7 +72,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-assume-threads-oversubscription \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-THREADS-OVS
+-! CHECK-THREADS-OVS: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-threads-oversubscription" {{.*}}.f90"
++! CHECK-THREADS-OVS: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-threads-oversubscription" {{.*}}.f90"
+ 
+ ! RUN: %flang -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+@@ -84,7 +84,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-assume-teams-oversubscription  \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-TEAMS-OVS
+-! CHECK-TEAMS-OVS: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-teams-oversubscription" {{.*}}.f90"
++! CHECK-TEAMS-OVS: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-teams-oversubscription" {{.*}}.f90"
+ 
+ ! RUN: %flang -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+@@ -96,7 +96,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-assume-no-nested-parallelism  \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-NEST-PAR
+-! CHECK-NEST-PAR: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-no-nested-parallelism" {{.*}}.f90"
++! CHECK-NEST-PAR: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-no-nested-parallelism" {{.*}}.f90"
+ 
+ ! RUN: %flang -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+@@ -108,7 +108,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-assume-no-thread-state \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-THREAD-STATE
+-! CHECK-THREAD-STATE: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-no-thread-state" {{.*}}.f90"
++! CHECK-THREAD-STATE: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-assume-no-thread-state" {{.*}}.f90"
+ 
+ ! RUN: %flang -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+@@ -120,7 +120,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-target-debug \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-TARGET-DEBUG
+-! CHECK-TARGET-DEBUG: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-target-debug" {{.*}}.f90"
++! CHECK-TARGET-DEBUG: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-target-debug" {{.*}}.f90"
+ 
+ ! RUN: %flang -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+@@ -132,7 +132,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-target-debug \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-TARGET-DEBUG
+-! CHECK-TARGET-DEBUG-EQ: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-target-debug=111" {{.*}}.f90"
++! CHECK-TARGET-DEBUG-EQ: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-target-debug=111" {{.*}}.f90"
+ 
+ ! RUN: %flang -S -### %s -o %t 2>&1 \
+ ! RUN: -fopenmp --offload-arch=gfx90a \
+@@ -148,7 +148,7 @@
+ ! RUN: -fopenmp-assume-teams-oversubscription -fopenmp-assume-no-nested-parallelism \
+ ! RUN: -fopenmp-assume-no-thread-state \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-RTL-ALL
+-! CHECK-RTL-ALL: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-target-debug" "-fopenmp-assume-teams-oversubscription"
++! CHECK-RTL-ALL: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" {{.*}} "-fopenmp-is-target-device" "-fopenmp-target-debug" "-fopenmp-assume-teams-oversubscription"
+ ! CHECK-RTL-ALL: "-fopenmp-assume-threads-oversubscription" "-fopenmp-assume-no-thread-state" "-fopenmp-assume-no-nested-parallelism"
+ ! CHECK-RTL-ALL: {{.*}}.f90"
+ 
+@@ -162,7 +162,7 @@
+ ! RUN: -fopenmp-targets=nvptx64-nvidia-cuda \
+ ! RUN: -fopenmp-version=45 \
+ ! RUN: | FileCheck %s --check-prefixes=CHECK-OPENMP-VERSION
+-! CHECK-OPENMP-VERSION: "{{[^"]*}}flang-new" "-fc1" {{.*}} "-fopenmp" "-fopenmp-version=45" {{.*}}.f90"
++! CHECK-OPENMP-VERSION: "{{[^"]*}}flang" "-fc1" {{.*}} "-fopenmp" "-fopenmp-version=45" {{.*}}.f90"
+ 
+ ! Test diagnostic error when host IR file is non-existent 
+ ! RUN: not %flang_fc1 %s -o %t 2>&1 -fopenmp -fopenmp-is-target-device \
+diff --git a/flang/test/Driver/predefined-macros-compiler-version.F90 b/flang/test/Driver/predefined-macros-compiler-version.F90
+index 823a730f9684..f69244792815 100644
+--- a/flang/test/Driver/predefined-macros-compiler-version.F90
++++ b/flang/test/Driver/predefined-macros-compiler-version.F90
+@@ -1,12 +1,12 @@
+ ! Check that the driver correctly defines macros with the compiler version
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: %flang_fc1 -E %s  2>&1 | FileCheck %s --ignore-case
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -E %s  2>&1 | FileCheck %s --ignore-case
+ 
+diff --git a/flang/test/Driver/std2018-wrong.f90 b/flang/test/Driver/std2018-wrong.f90
+index 27ccc76bd39a..93ba153d75f7 100644
+--- a/flang/test/Driver/std2018-wrong.f90
++++ b/flang/test/Driver/std2018-wrong.f90
+@@ -1,7 +1,7 @@
+ ! Ensure argument -std=f2018 works as expected.
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: not %flang_fc1 -std=90 %s  2>&1 | FileCheck %s --check-prefix=WRONG
+ 
+diff --git a/flang/test/Driver/std2018.f90 b/flang/test/Driver/std2018.f90
+index cf461cf89e4e..1727f92127b7 100644
+--- a/flang/test/Driver/std2018.f90
++++ b/flang/test/Driver/std2018.f90
+@@ -1,7 +1,7 @@
+ ! Ensure argument -std=f2018 works as expected.
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -fsyntax-only %s  2>&1 | FileCheck %s --allow-empty --check-prefix=WITHOUT
+ ! RUN: %flang_fc1 -fsyntax-only -std=f2018 %s  2>&1 | FileCheck %s --check-prefix=GIVEN
+diff --git a/flang/test/Driver/supported-suffices/f03-suffix.f03 b/flang/test/Driver/supported-suffices/f03-suffix.f03
+index 6e03f9f43fc6..1d850305cd04 100644
+--- a/flang/test/Driver/supported-suffices/f03-suffix.f03
++++ b/flang/test/Driver/supported-suffices/f03-suffix.f03
+@@ -1,5 +1,5 @@
+ ! RUN: %flang -### %s 2>&1 | FileCheck %s
+ 
+-! CHECK: "{{.*}}flang-new" "-fc1" {{.*}} "-o" "{{.*}}.o"
++! CHECK: "{{.*}}flang" "-fc1" {{.*}} "-o" "{{.*}}.o"
+ program f03
+ end program f03
+diff --git a/flang/test/Driver/supported-suffices/f08-suffix.f08 b/flang/test/Driver/supported-suffices/f08-suffix.f08
+index d5bcf4ce1de1..2b31e4c21876 100644
+--- a/flang/test/Driver/supported-suffices/f08-suffix.f08
++++ b/flang/test/Driver/supported-suffices/f08-suffix.f08
+@@ -1,5 +1,5 @@
+ ! RUN: %flang -### %s 2>&1 | FileCheck %s
+ 
+-! CHECK: "{{.*}}flang-new" "-fc1" {{.*}} "-o" "{{.*}}.o"
++! CHECK: "{{.*}}flang" "-fc1" {{.*}} "-o" "{{.*}}.o"
+ program f08
+ end program f08
+diff --git a/flang/test/Driver/use-module-error.f90 b/flang/test/Driver/use-module-error.f90
+index 42d6650621c8..67335f616268 100644
+--- a/flang/test/Driver/use-module-error.f90
++++ b/flang/test/Driver/use-module-error.f90
+@@ -1,14 +1,14 @@
+ ! Ensure that multiple module directories are not allowed
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: not %flang -fsyntax-only -J %S/Inputs/module-dir -J %S/Inputs/ %s  2>&1 | FileCheck %s --check-prefix=DOUBLEINCLUDE
+ ! RUN: not %flang -fsyntax-only -J %S/Inputs/module-dir -module-dir %S/Inputs/ %s 2>&1 | FileCheck %s --check-prefix=DOUBLEINCLUDE
+ ! RUN: not %flang -fsyntax-only -module-dir %S/Inputs/module-dir -J%S/Inputs/ %s 2>&1 | FileCheck %s --check-prefix=DOUBLEINCLUDE
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: not %flang_fc1 -fsyntax-only -J %S/Inputs/module-dir -J %S/Inputs/ %s 2>&1 | FileCheck %s --check-prefix=DOUBLEINCLUDE
+ ! RUN: not %flang_fc1 -fsyntax-only -J %S/Inputs/module-dir -module-dir %S/Inputs/ %s 2>&1 | FileCheck %s --check-prefix=DOUBLEINCLUDE
+diff --git a/flang/test/Driver/use-module.f90 b/flang/test/Driver/use-module.f90
+index 775c04247158..2c3a38043fe1 100644
+--- a/flang/test/Driver/use-module.f90
++++ b/flang/test/Driver/use-module.f90
+@@ -1,7 +1,7 @@
+ ! Checks that module search directories specified with `-J/-module-dir` and `-I` are handled correctly
+ 
+ !--------------------------
+-! FLANG DRIVER (flang-new)
++! FLANG DRIVER (flang)
+ !--------------------------
+ ! RUN: %flang -fsyntax-only -I %S/Inputs -I %S/Inputs/module-dir %s  2>&1 | FileCheck %s --check-prefix=INCLUDED --allow-empty
+ ! RUN: %flang -fsyntax-only -I %S/Inputs -J %S/Inputs/module-dir %s 2>&1 | FileCheck %s --check-prefix=INCLUDED --allow-empty
+@@ -16,7 +16,7 @@
+ ! RUN: not %flang -fsyntax-only -module-dir %S/Inputs/module-dir %s  2>&1 | FileCheck %s --check-prefix=SINGLEINCLUDE
+ 
+ !-----------------------------------------
+-! FRONTEND FLANG DRIVER (flang-new -fc1)
++! FRONTEND FLANG DRIVER (flang -fc1)
+ !-----------------------------------------
+ ! RUN: %flang_fc1 -fsyntax-only -I %S/Inputs -I %S/Inputs/module-dir %s  2>&1 | FileCheck %s --check-prefix=INCLUDED --allow-empty
+ ! RUN: %flang_fc1 -fsyntax-only -I %S/Inputs -J %S/Inputs/module-dir %s 2>&1 | FileCheck %s --check-prefix=INCLUDED --allow-empty
+diff --git a/flang/test/Driver/version-loops.f90 b/flang/test/Driver/version-loops.f90
+index b0fa01d57251..d206393a04f4 100644
+--- a/flang/test/Driver/version-loops.f90
++++ b/flang/test/Driver/version-loops.f90
+@@ -1,5 +1,5 @@
+-! Test that flang-new forwards the -f{no-,}version-loops-for-stride 
+-! options correctly to flang-new -fc1 for different variants of optimisation
++! Test that flang forwards the -f{no-,}version-loops-for-stride 
++! options correctly to flang -fc1 for different variants of optimisation
+ ! and explicit flags.
+ 
+ ! RUN: %flang -### %s -o %t 2>&1   -O3 \
+@@ -23,32 +23,32 @@
+ ! RUN: %flang -### %s -o %t 2>&1 -O3 -fno-version-loops-for-stride \
+ ! RUN:   | FileCheck %s --check-prefix=CHECK-O3-no
+ 
+-! CHECK: "{{.*}}flang-new" "-fc1"
++! CHECK: "{{.*}}flang" "-fc1"
+ ! CHECK-SAME: "-fversion-loops-for-stride"
+ ! CHECK-SAME: "-O3"
+ 
+-! CHECK-O2: "{{.*}}flang-new" "-fc1"
++! CHECK-O2: "{{.*}}flang" "-fc1"
+ ! CHECK-O2-NOT: "-fversion-loops-for-stride"
+ ! CHECK-O2-SAME: "-O2"  
+ 
+-! CHECK-O2-with: "{{.*}}flang-new" "-fc1"
++! CHECK-O2-with: "{{.*}}flang" "-fc1"
+ ! CHECK-O2-with-SAME: "-fversion-loops-for-stride"
+ ! CHECK-O2-with-SAME: "-O2"  
+   
+-! CHECK-O4: "{{.*}}flang-new" "-fc1"
++! CHECK-O4: "{{.*}}flang" "-fc1"
+ ! CHECK-O4-SAME: "-fversion-loops-for-stride"
+ ! CHECK-O4-SAME: "-O3"
+ 
+-! CHECK-Ofast: "{{.*}}flang-new" "-fc1"
++! CHECK-Ofast: "{{.*}}flang" "-fc1"
+ ! CHECK-Ofast-SAME: "-ffast-math"
+ ! CHECK-Ofast-SAME: "-fversion-loops-for-stride"
+ ! CHECK-Ofast-SAME: "-O3"
+ 
+-! CHECK-Ofast-no: "{{.*}}flang-new" "-fc1"
++! CHECK-Ofast-no: "{{.*}}flang" "-fc1"
+ ! CHECK-Ofast-no-SAME: "-ffast-math"
+ ! CHECK-Ofast-no-NOT: "-fversion-loops-for-stride"
+ ! CHECK-Ofast-no-SAME: "-O3"
+ 
+-! CHECK-O3-no: "{{.*}}flang-new" "-fc1"
++! CHECK-O3-no: "{{.*}}flang" "-fc1"
+ ! CHECK-O3-no-NOT: "-fversion-loops-for-stride"
+ ! CHECK-O3-no-SAME: "-O3"
+diff --git a/flang/test/Driver/wextra-ok.f90 b/flang/test/Driver/wextra-ok.f90
+index 48676e8e62aa..5b4a36039018 100644
+--- a/flang/test/Driver/wextra-ok.f90
++++ b/flang/test/Driver/wextra-ok.f90
+@@ -1,4 +1,4 @@
+-! Ensure that supplying -Wextra into flang-new does not raise error
++! Ensure that supplying -Wextra into flang does not raise error
+ ! The first check should be changed if -Wextra is implemented
+ 
+ ! RUN: %flang -std=f2018 -Wextra %s -c 2>&1 | FileCheck %s --check-prefix=CHECK-OK
+diff --git a/flang/test/HLFIR/hlfir-flags.f90 b/flang/test/HLFIR/hlfir-flags.f90
+index b383a79d12c2..0b1e80b1e3f6 100644
+--- a/flang/test/HLFIR/hlfir-flags.f90
++++ b/flang/test/HLFIR/hlfir-flags.f90
+@@ -1,4 +1,4 @@
+-! Test -flang-deprecated-hlfir, -flang-experimental-hlfir (flang-new), and
++! Test -flang-deprecated-hlfir, -flang-experimental-hlfir (flang), and
+ ! -hlfir (bbc), -emit-hlfir, -emit-fir flags
+ ! RUN: %flang_fc1 -emit-hlfir -o - %s | FileCheck --check-prefix HLFIR --check-prefix ALL %s
+ ! RUN: bbc -emit-hlfir -o - %s | FileCheck --check-prefix HLFIR --check-prefix ALL %s
+diff --git a/flang/test/Lower/Intrinsics/command_argument_count.f90 b/flang/test/Lower/Intrinsics/command_argument_count.f90
+index 0cf92d4444db..35737e8aee1c 100644
+--- a/flang/test/Lower/Intrinsics/command_argument_count.f90
++++ b/flang/test/Lower/Intrinsics/command_argument_count.f90
+@@ -1,6 +1,6 @@
+ ! RUN: bbc -emit-fir %s -o - | FileCheck %s
+-! bbc doesn't have a way to set the default kinds so we use flang-new driver
+-! RUN: flang-new -fc1 -fdefault-integer-8 -emit-fir %s -o - | FileCheck --check-prefixes=CHECK,CHECK-64  %s
++! bbc doesn't have a way to set the default kinds so we use flang driver
++! RUN: %flang_fc1 -fdefault-integer-8 -emit-fir %s -o - | FileCheck --check-prefixes=CHECK,CHECK-64  %s
+ 
+ ! CHECK-LABEL: argument_count_test
+ subroutine argument_count_test()
+diff --git a/flang/test/Lower/Intrinsics/exit.f90 b/flang/test/Lower/Intrinsics/exit.f90
+index c3110fcbec2b..bd551f7318a8 100644
+--- a/flang/test/Lower/Intrinsics/exit.f90
++++ b/flang/test/Lower/Intrinsics/exit.f90
+@@ -1,5 +1,5 @@
+ ! RUN: bbc -emit-fir -hlfir=false %s -o - | FileCheck --check-prefixes=CHECK,CHECK-32 -DDEFAULT_INTEGER_SIZE=32 %s
+-! bbc doesn't have a way to set the default kinds so we use flang-new driver
++! bbc doesn't have a way to set the default kinds so we use flang driver
+ ! RUN: %flang_fc1 -fdefault-integer-8 -emit-fir -flang-deprecated-no-hlfir %s -o - | FileCheck --check-prefixes=CHECK,CHECK-64 -DDEFAULT_INTEGER_SIZE=64 %s
+ 
+ ! CHECK-LABEL: func @_QPexit_test1() {
+diff --git a/flang/test/Lower/Intrinsics/ieee_is_normal.f90 b/flang/test/Lower/Intrinsics/ieee_is_normal.f90
+index f9ab01881d25..9b864c9a9849 100644
+--- a/flang/test/Lower/Intrinsics/ieee_is_normal.f90
++++ b/flang/test/Lower/Intrinsics/ieee_is_normal.f90
+@@ -1,5 +1,5 @@
+ ! RUN: bbc -emit-fir %s -o - | FileCheck %s
+-! RUN: flang-new -fc1 -emit-fir %s -o - | FileCheck %s
++! RUN: flang -fc1 -emit-fir %s -o - | FileCheck %s
+ 
+ ! CHECK-LABEL: ieee_is_normal_f16
+ subroutine ieee_is_normal_f16(r)
+diff --git a/flang/test/Lower/Intrinsics/isnan.f90 b/flang/test/Lower/Intrinsics/isnan.f90
+index 700b2d1a67c6..62b98c8ea98b 100644
+--- a/flang/test/Lower/Intrinsics/isnan.f90
++++ b/flang/test/Lower/Intrinsics/isnan.f90
+@@ -1,5 +1,5 @@
+ ! RUN: bbc -emit-fir %s -o - | FileCheck %s
+-! RUN: flang-new -fc1 -emit-fir %s -o - | FileCheck %s
++! RUN: flang -fc1 -emit-fir %s -o - | FileCheck %s
+ 
+ ! CHECK-LABEL: isnan_f32
+ subroutine isnan_f32(r)
+diff --git a/flang/test/Lower/OpenMP/Todo/omp-declarative-allocate.f90 b/flang/test/Lower/OpenMP/Todo/omp-declarative-allocate.f90
+index f02884e5e92f..75a027ac575d 100644
+--- a/flang/test/Lower/OpenMP/Todo/omp-declarative-allocate.f90
++++ b/flang/test/Lower/OpenMP/Todo/omp-declarative-allocate.f90
+@@ -1,6 +1,6 @@
+ ! This test checks lowering of OpenMP allocate Directive.
+ 
+-// RUN: not flang-new -fc1 -emit-fir -fopenmp %s 2>&1 | FileCheck %s
++// RUN: not %flang_fc1 -emit-fir -fopenmp %s 2>&1 | FileCheck %s
+ 
+ program main
+   integer :: x, y
+diff --git a/flang/test/Lower/OpenMP/Todo/omp-declare-reduction.f90 b/flang/test/Lower/OpenMP/Todo/omp-declare-reduction.f90
+index 3be61a1700ce..f70a7f063cbb 100644
+--- a/flang/test/Lower/OpenMP/Todo/omp-declare-reduction.f90
++++ b/flang/test/Lower/OpenMP/Todo/omp-declare-reduction.f90
+@@ -1,6 +1,6 @@
+ ! This test checks lowering of OpenMP declare reduction Directive.
+ 
+-// RUN: not flang-new -fc1 -emit-fir -fopenmp %s 2>&1 | FileCheck %s
++// RUN: not %flang_fc1 -emit-fir -fopenmp %s 2>&1 | FileCheck %s
+ 
+ subroutine declare_red()
+   integer :: my_var
+diff --git a/flang/test/Lower/OpenMP/Todo/omp-declare-simd.f90 b/flang/test/Lower/OpenMP/Todo/omp-declare-simd.f90
+index c6a0a8f2cd0d..a63bfb284642 100644
+--- a/flang/test/Lower/OpenMP/Todo/omp-declare-simd.f90
++++ b/flang/test/Lower/OpenMP/Todo/omp-declare-simd.f90
+@@ -1,6 +1,6 @@
+ ! This test checks lowering of OpenMP declare simd Directive.
+ 
+-// RUN: not flang-new -fc1 -emit-fir -fopenmp %s 2>&1 | FileCheck %s
++// RUN: not %flang_fc1 -emit-fir -fopenmp %s 2>&1 | FileCheck %s
+ 
+ subroutine sub(x, y)
+   real, intent(inout) :: x, y
+diff --git a/flang/test/Lower/OpenMP/parallel-lastprivate-clause-scalar.f90 b/flang/test/Lower/OpenMP/parallel-lastprivate-clause-scalar.f90
+index e6ea5b5c4051..03383f16db4a 100644
+--- a/flang/test/Lower/OpenMP/parallel-lastprivate-clause-scalar.f90
++++ b/flang/test/Lower/OpenMP/parallel-lastprivate-clause-scalar.f90
+@@ -1,7 +1,7 @@
+ ! This test checks lowering of `LASTPRIVATE` clause for scalar types.
+ 
+ ! RUN: bbc -fopenmp -emit-hlfir %s -o - | FileCheck %s
+-! RUN: flang-new -fc1 -fopenmp -emit-hlfir %s -o - | FileCheck %s
++! RUN: flang -fc1 -fopenmp -emit-hlfir %s -o - | FileCheck %s
+ 
+ !CHECK: func @_QPlastprivate_character(%[[ARG1:.*]]: !fir.boxchar<1>{{.*}}) {
+ !CHECK-DAG: %[[ARG1_UNBOX:.*]]:2 = fir.unboxchar
+diff --git a/flang/test/lit.cfg.py b/flang/test/lit.cfg.py
+index ac504dc5d1fb..e74d8e4326ee 100644
+--- a/flang/test/lit.cfg.py
++++ b/flang/test/lit.cfg.py
+@@ -118,13 +118,19 @@ if config.flang_standalone_build:
+                 "PATH", config.flang_llvm_tools_dir, append_path=True
+             )
+ 
++# Select the driver name for this configuration
++if config.use_driver_legacy_name:
++    driver_name = "flang-new"
++else:
++    driver_name = "flang"
++
+ # For each occurrence of a flang tool name, replace it with the full path to
+ # the build directory holding that tool.
+ tools = [
+-    ToolSubst("%flang", command=FindTool("flang-new"), unresolved="fatal"),
++    ToolSubst("%flang", command=FindTool(driver_name), unresolved="fatal"),
+     ToolSubst(
+         "%flang_fc1",
+-        command=FindTool("flang-new"),
++        command=FindTool(driver_name),
+         extra_args=["-fc1"],
+         unresolved="fatal",
+     ),
+diff --git a/flang/test/lit.site.cfg.py.in b/flang/test/lit.site.cfg.py.in
+index 32099f43d313..369f2e4269c6 100644
+--- a/flang/test/lit.site.cfg.py.in
++++ b/flang/test/lit.site.cfg.py.in
+@@ -24,6 +24,7 @@ config.linked_bye_extension = @LLVM_BYE_LINK_INTO_TOOLS@
+ config.cc = "@CMAKE_C_COMPILER@"
+ config.osx_sysroot = path(r"@CMAKE_OSX_SYSROOT@")
+ config.targets_to_build = "@TARGETS_TO_BUILD@"
++config.use_driver_legacy_name = @FLANG_USE_LEGACY_NAME@
+ 
+ import lit.llvm
+ lit.llvm.initialize(lit_config, config)
+diff --git a/flang/tools/f18/CMakeLists.txt b/flang/tools/f18/CMakeLists.txt
+index 270124bce324..d4ea3e6983a6 100644
+--- a/flang/tools/f18/CMakeLists.txt
++++ b/flang/tools/f18/CMakeLists.txt
+@@ -23,7 +23,7 @@ set(MODULES
+ )
+ 
+ # Create module files directly from the top-level module source directory.
+-# If CMAKE_CROSSCOMPILING, then the newly built flang-new executable was
++# If CMAKE_CROSSCOMPILING, then the newly built flang executable was
+ # cross compiled, and thus can't be executed on the build system and thus
+ # can't be used for generating module files.
+ if (NOT CMAKE_CROSSCOMPILING)
+@@ -56,9 +56,9 @@ if (NOT CMAKE_CROSSCOMPILING)
+ 
+     add_custom_command(OUTPUT ${base}.mod
+       COMMAND ${CMAKE_COMMAND} -E make_directory ${FLANG_INTRINSIC_MODULES_DIR}
+-      COMMAND flang-new -cpp -fsyntax-only ${opts} -module-dir ${FLANG_INTRINSIC_MODULES_DIR}
++      COMMAND flang -cpp -fsyntax-only ${opts} -module-dir ${FLANG_INTRINSIC_MODULES_DIR}
+         ${FLANG_SOURCE_DIR}/module/${filename}.f90
+-      DEPENDS flang-new ${FLANG_SOURCE_DIR}/module/${filename}.f90 ${depends}
++      DEPENDS flang ${FLANG_SOURCE_DIR}/module/${filename}.f90 ${depends}
+     )
+     add_custom_command(OUTPUT ${base}.f18.mod
+       DEPENDS ${base}.mod
+@@ -70,7 +70,7 @@ endif()
+ 
+ add_custom_target(module_files ALL DEPENDS ${MODULE_FILES})
+ 
+-# This flang shell script will only work in a POSIX shell.
++# The flang-to-gfortan shell script will only work in a POSIX shell.
+ if (NOT WIN32)
+   configure_file(
+     ${CMAKE_CURRENT_SOURCE_DIR}/flang-to-external-fc.in
+diff --git a/flang/tools/flang-driver/CMakeLists.txt b/flang/tools/flang-driver/CMakeLists.txt
+index 3ce8b407450d..2a71e9446a3b 100644
+--- a/flang/tools/flang-driver/CMakeLists.txt
++++ b/flang/tools/flang-driver/CMakeLists.txt
+@@ -11,7 +11,7 @@ set( LLVM_LINK_COMPONENTS
+   TargetParser
+ )
+ 
+-add_flang_tool(flang-new
++add_flang_tool(flang
+   driver.cpp
+   fc1_main.cpp
+ 
+@@ -24,23 +24,33 @@ add_flang_tool(flang-new
+   Fortran_main
+ )
+ 
+-target_link_libraries(flang-new
++target_link_libraries(flang
+   PRIVATE
+   flangFrontend
+   flangFrontendTool
+ )
+ 
+-clang_target_link_libraries(flang-new
++clang_target_link_libraries(flang
+   PRIVATE
+   clangDriver
+   clangBasic
+ )
+ 
++if(WIN32 AND NOT CYGWIN)
++  # Prevent versioning if the buildhost is targeting for Win32.
++else()
++  set_target_properties(flang PROPERTIES VERSION ${FLANG_EXECUTABLE_VERSION})
++endif()
++
++if (FLANG_USE_LEGACY_NAME)
++  set_target_properties(flang PROPERTIES OUTPUT_NAME flang-new)
++endif()
++
+ option(FLANG_PLUGIN_SUPPORT "Build Flang with plugin support." ON)
+ 
+-# Enable support for plugins, which need access to symbols from flang-new
++# Enable support for plugins, which need access to symbols from flang
+ if(FLANG_PLUGIN_SUPPORT)
+-  export_executable_symbols_for_plugins(flang-new)
++  export_executable_symbols_for_plugins(flang)
+ endif()
+ 
+-install(TARGETS flang-new DESTINATION "${CMAKE_INSTALL_BINDIR}")
++install(TARGETS flang DESTINATION "${CMAKE_INSTALL_BINDIR}")
+diff --git a/flang/tools/flang-driver/driver.cpp b/flang/tools/flang-driver/driver.cpp
+index 99fa66b0dc8e..4bb990bc41dd 100644
+--- a/flang/tools/flang-driver/driver.cpp
++++ b/flang/tools/flang-driver/driver.cpp
+@@ -88,14 +88,15 @@ int main(int argc, const char **argv) {
+   llvm::InitLLVM x(argc, argv);
+   llvm::SmallVector<const char *, 256> args(argv, argv + argc);
+ 
+-  clang::driver::ParsedClangName targetandMode("flang", "--driver-mode=flang");
++  clang::driver::ParsedClangName targetandMode =
++      clang::driver::ToolChain::getTargetAndModeFromProgramName(argv[0]);
+   std::string driverPath = getExecutablePath(args[0]);
+ 
+   llvm::BumpPtrAllocator a;
+   llvm::StringSaver saver(a);
+   ExpandResponseFiles(saver, args);
+ 
+-  // Check if flang-new is in the frontend mode
++  // Check if flang is in the frontend mode
+   auto firstArg = std::find_if(args.begin() + 1, args.end(),
+                                [](const char *a) { return a != nullptr; });
+   if (firstArg != args.end()) {
+@@ -104,7 +105,7 @@ int main(int argc, const char **argv) {
+                    << "Valid tools include '-fc1'.\n";
+       return 1;
+     }
+-    // Call flang-new frontend
++    // Call flang frontend
+     if (llvm::StringRef(args[1]).startswith("-fc1")) {
+       return executeFC1Tool(args);
+     }
+@@ -137,7 +138,7 @@ int main(int argc, const char **argv) {
+ 
+   // Set the environment variable, FLANG_COMPILER_OPTIONS_STRING, to contain all
+   // the compiler options. This is intended for the frontend driver,
+-  // flang-new -fc1, to enable the implementation of the COMPILER_OPTIONS
++  // flang -fc1, to enable the implementation of the COMPILER_OPTIONS
+   // intrinsic. To this end, the frontend driver requires the list of the
+   // original compiler options, which is not available through other means.
+   // TODO: This way of passing information between the compiler and frontend
+-- 
+2.42.1
+

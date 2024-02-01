@@ -19,7 +19,7 @@ RDEPEND=""
 DEPEND="dev-libs/FunctionalPlus
 	${RDEPEND}"
 
-BDEPEND=">=dev-util/cmake-3.22"
+BDEPEND=">=dev-build/cmake-3.22"
 
 S="${WORKDIR}/${P}-p0"
 

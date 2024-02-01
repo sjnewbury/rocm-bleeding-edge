@@ -1,0 +1,10 @@
+--- ./CMakeLists.txt~	2024-02-01 11:55:22.000000000 +0000
++++ ./CMakeLists.txt	2024-02-01 12:46:44.305605976 +0000
+@@ -787,6 +787,7 @@
+ endif()
+ if (onnxruntime_USE_ROCM)
+     list(APPEND ORT_PROVIDER_FLAGS  -DUSE_ROCM=1)
++    list(APPEND ORT_PROVIDER_FLAGS  -DROCM_USE_FLOAT16=1)
+     list(APPEND ORT_PROVIDER_CMAKE_FLAGS -Donnxruntime_USE_ROCM=1)
+     list(APPEND ONNXRUNTIME_PROVIDER_NAMES rocm)
+ endif()

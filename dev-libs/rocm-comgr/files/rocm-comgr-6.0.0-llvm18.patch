@@ -1,0 +1,11 @@
+--- comgr/src/comgr-metadata.cpp~	2024-01-24 15:07:13.000000000 +0000
++++ comgr/src/comgr-metadata.cpp	2024-01-24 15:13:14.498071767 +0000
+@@ -1013,7 +1013,7 @@
+ 
+   int Seen = 0;
+   BinaryStreamReader Reader(StringRef(DataP->Data, DataP->Size),
+-                            support::little);
++                            llvm::endianness::little);
+ 
+   StringRef Magic;
+   if (auto EC = Reader.readFixedString(Magic, OffloadBundleMagicLen)) {

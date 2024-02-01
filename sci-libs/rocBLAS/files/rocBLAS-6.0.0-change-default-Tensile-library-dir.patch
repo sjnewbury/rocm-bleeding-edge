@@ -1,0 +1,55 @@
+--- ./library/src/tensile_host.cpp~	2023-11-17 01:31:56.000000000 +0000
++++ ./library/src/tensile_host.cpp	2024-01-22 14:51:40.216962759 +0000
+@@ -686,51 +686,7 @@
+             }
+             else
+             {
+-                path = ROCBLAS_LIB_PATH;
+-
+-                // Find the location of librocblas.dll/.so
+-                // Fall back on hard-coded path if static library or not found
+-
+-#ifndef ROCBLAS_STATIC_LIB
+-#ifdef WIN32
+-                // wchar_t wpath[MAX_PATH + 1] = {0};
+-                // if(GetModuleFileNameW(GetModuleHandle("rocblas.dll"), wpath, MAX_PATH + 1))
+-                // {
+-                //     std::wstring          wspath(wpath);
+-                //     std::string           tmp(wspath.begin(), wspath.end());
+-
+-                std::vector<TCHAR> dll_path(MAX_PATH + 1);
+-                if(GetModuleFileNameA(
+-                       GetModuleHandleA("rocblas.dll"), dll_path.data(), MAX_PATH + 1))
+-                {
+-                    std::string           tmp(dll_path.begin(), dll_path.end());
+-                    std::filesystem::path exepath = tmp;
+-                    if(exepath.has_filename())
+-                    {
+-                        path = exepath.remove_filename().string();
+-                    }
+-                }
+-#else
+-                dl_iterate_phdr(rocblas_dl_iterate_phdr_callback, NULL);
+-                if(rocblas_so_path.size())
+-                    path = std::string{dirname(&rocblas_so_path[0])};
+-#endif
+-#endif // ifndef ROCBLAS_STATIC_LIB
+-
+-                // Find the location of the libraries
+-                if(TestPath(path + "/../../Tensile/library"))
+-                    path += "/../../Tensile/library";
+-                else if(TestPath(path + "/library"))
+-                    path += "/library";
+-                else if(TestPath(path + "/../rocblas/library"))
+-                    // For ASAN packaging, library file directory will be lib/asan
+-                    // so need to prefix ../ to set search path to lib/rocblas/library
+-                    path += "/../rocblas/library";
+-                else
+-                    path += "/rocblas/library";
+-
+-                if(TestPath(path + "/" + processor))
+-                    path += "/" + processor;
++                path = "@GENTOO_PORTAGE_EPREFIX@/usr/lib64/rocblas/library";;
+             }
+ 
+ #ifdef TENSILE_YAML

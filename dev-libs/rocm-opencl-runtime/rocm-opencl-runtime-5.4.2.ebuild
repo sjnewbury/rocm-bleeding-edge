@@ -22,7 +22,7 @@ RDEPEND=">=dev-libs/rocr-runtime-${PV}
 	>=virtual/opencl-3
 	media-libs/mesa"
 DEPEND="${RDEPEND}"
-BDEPEND=">=dev-util/rocm-cmake-${PV}
+BDEPEND=">=dev-build/rocm-cmake-${PV}
 	media-libs/glew
 	test? ( >=x11-apps/mesa-progs-8.5.0[X] )
 	"

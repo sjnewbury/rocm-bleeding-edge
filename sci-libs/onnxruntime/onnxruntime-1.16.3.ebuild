@@ -3,7 +3,8 @@
 
 EAPI=8
 
-ROCM_VERSION=5.7.1
+ROCM_VERSION=6.0.0
+LLVM_MAX_SLOT="18"
 
 inherit llvm cmake rocm
 
@@ -36,6 +37,7 @@ PATCHES=(
 	"${FILESDIR}/system-mp11.patch"
 	"${FILESDIR}/rocm-version-override-r2.patch"
 	"${FILESDIR}/hip-gentoo.patch"
+	"${FILESDIR}/rocblas-half.patch"
 )
 
 S="${WORKDIR}/${P}/cmake"
@@ -73,7 +75,7 @@ DEPEND="
 "
 
 pkg_setup() {
-	CC=clang CXX=clang++
+	CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
 	tc-is-clang || die Clang required
 
 	strip-unsupported-flags
@@ -88,6 +90,7 @@ src_prepare() {
 	pushd ..
 	eapply "${FILESDIR}/shared-build-fix.patch"
 	eapply "${FILESDIR}/hip-libdir.patch"
+	eapply "${FILESDIR}/composable_kernel-6.patch"
 	popd
 
 	cmake_src_prepare

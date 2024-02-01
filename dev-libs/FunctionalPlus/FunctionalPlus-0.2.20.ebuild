@@ -18,10 +18,10 @@ REQUIRED_USE="${ROCM_REQUIRED_USE}"
 RDEPEND=""
 
 DEPEND="${RDEPEND}
-	dev-util/rocm-cmake"
+	dev-build/rocm-cmake"
 
-BDEPEND="dev-util/rocm-cmake
-	>=dev-util/cmake-3.22"
+BDEPEND="dev-build/rocm-cmake
+	>=dev-build/cmake-3.22"
 
 S="${WORKDIR}/${PN}-${PV}-p0"
 

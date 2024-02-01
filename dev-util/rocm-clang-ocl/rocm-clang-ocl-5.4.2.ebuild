@@ -15,7 +15,7 @@ KEYWORDS="~amd64"
 
 RDEPEND="dev-libs/rocm-opencl-runtime:${SLOT}"
 DEPEND="
-	dev-util/rocm-cmake:${SLOT}
+	dev-build/rocm-cmake:${SLOT}
 	${RDEPEND}"
 
 S="${WORKDIR}/clang-ocl-rocm-${PV}"

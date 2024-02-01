@@ -1,0 +1,39 @@
+--- ./CMakeLists.txt.orig	2024-01-22 15:50:25.323539946 +0000
++++ ./CMakeLists.txt	2024-01-22 15:51:57.326870982 +0000
+@@ -80,8 +80,6 @@
+ execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD OUTPUT_VARIABLE COMMIT_ID OUTPUT_STRIP_TRAILING_WHITESPACE)
+ configure_file("${PROJECT_SOURCE_DIR}/include/ck/version.h.in" "${PROJECT_BINARY_DIR}/include/ck/version.h")
+ 
+-enable_testing()
+-
+ set(ROCM_SYMLINK_LIBS OFF)
+ find_package(ROCM REQUIRED PATHS /opt/rocm)
+ 
+@@ -378,8 +376,6 @@
+ endif()
+ message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
+ 
+-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
+-
+ file(GLOB_RECURSE INSTANCE_FILES "${PROJECT_SOURCE_DIR}/*/device_*_instance.cpp")
+ file(GLOB dir_list RELATIVE ${PROJECT_SOURCE_DIR}/library/src/tensor_operation_instance/gpu ${PROJECT_SOURCE_DIR}/library/src/tensor_operation_instance/gpu/*)
+ set(CK_DEVICE_INSTANCES)
+@@ -432,18 +428,6 @@
+ 
+ if(NOT DEFINED INSTANCES_ONLY)
+  if(NOT DEFINED PROFILER_ONLY)
+-   rocm_package_setup_component(tests
+-        LIBRARY_NAME composablekernel
+-        PACKAGE_NAME tests # Prevent -static suffix on package name
+-   )
+-
+-   rocm_package_setup_component(examples
+-        LIBRARY_NAME composablekernel
+-        PACKAGE_NAME examples
+-   )
+-   add_subdirectory(example)
+-   add_subdirectory(test)
+-
+    rocm_package_setup_component(profiler
+         LIBRARY_NAME composablekernel
+         PACKAGE_NAME ckprofiler

@@ -1,0 +1,24 @@
+--- ./ockl/src/cg.cl~	2023-10-17 21:55:28.000000000 +0100
++++ ./ockl/src/cg.cl	2024-01-23 22:27:55.950747059 +0000
+@@ -85,17 +85,21 @@
+     }
+ }
+ 
++#pragma clang attribute push (__attribute__((target("gws"))), apply_to=function)
+ void
+ __ockl_gws_init(uint nwm1, uint rid)
+ {
+     __builtin_amdgcn_ds_gws_init(nwm1, rid);
+ }
++#pragma clang attribute pop
+ 
++#pragma clang attribute push (__attribute__((target("gws"))), apply_to=function)
+ void
+ __ockl_gws_barrier(uint nwm1, uint rid)
+ {
+     __builtin_amdgcn_ds_gws_barrier(nwm1, rid);
+ }
++#pragma clang attribute pop
+ 
+ __attribute__((const)) int
+ __ockl_grid_is_valid(void)

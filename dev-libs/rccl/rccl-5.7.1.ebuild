@@ -17,11 +17,11 @@ SLOT="0/$(ver_cut 1-2)"
 IUSE="test"
 
 RDEPEND="dev-util/hip
-	dev-util/hipify
+	dev-util/hipify-clang
 	dev-util/rocm-smi:${SLOT}"
 DEPEND="${RDEPEND}"
-BDEPEND=">=dev-util/cmake-3.22
-	>=dev-util/rocm-cmake-5.0.2-r1
+BDEPEND=">=dev-build/cmake-3.22
+	>=dev-build/rocm-cmake-5.0.2-r1
 	test? ( dev-cpp/gtest )"
 
 RESTRICT="!test? ( test )"
