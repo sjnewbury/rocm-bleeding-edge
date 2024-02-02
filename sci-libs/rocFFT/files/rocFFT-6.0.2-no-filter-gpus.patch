@@ -1,0 +1,11 @@
+--- ./library/src/CMakeLists.txt~	2024-01-08 19:20:41.000000000 +0000
++++ ./library/src/CMakeLists.txt	2024-02-01 14:47:11.848756700 +0000
+@@ -520,8 +520,6 @@
+ # architectures.  Less common architectures are filtered out from the
+ # list and kernels for them are built at runtime instead.
+ set( AMDGPU_TARGETS_AOT ${AMDGPU_TARGETS} )
+-list( REMOVE_ITEM AMDGPU_TARGETS_AOT gfx803 )
+-list( REMOVE_ITEM AMDGPU_TARGETS_AOT gfx900 )
+ # The binary will be having relative RUNPATH with respect to install directory
+ # Set LD_LIBRARY_PATH for executing the binary from build directory.
+ add_custom_command(
