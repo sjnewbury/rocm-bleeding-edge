@@ -10,7 +10,7 @@ inherit cmake edo rocm toolchain-funcs
 DESCRIPTION="ROCm SPARSE marshalling library"
 HOMEPAGE="https://github.com/ROCmSoftwarePlatform/hipSPARSE"
 # share some test datasets with rocSPARSE
-SRC_URI="https://github.com/ROCmSoftwarePlatform/hipSPARSE/archive/rocm-${PV}.tar.gz -> hipSPARSE-$(ver_cut 1-2).tar.gz
+SRC_URI="https://github.com/ROCmSoftwarePlatform/hipSPARSE/archive/rocm-${PV}.tar.gz -> hipSPARSE-${PV}.tar.gz
 test? (
 https://sparse.tamu.edu/MM/SNAP/amazon0312.tar.gz -> rocSPARSE_amazon0312.tar.gz
 https://sparse.tamu.edu/MM/Muite/Chebyshev4.tar.gz -> rocSPARSE_Chebyshev4.tar.gz
