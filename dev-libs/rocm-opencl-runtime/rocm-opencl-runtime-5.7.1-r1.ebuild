@@ -35,6 +35,8 @@ BDEPEND=">=dev-build/rocm-cmake-5.3
 	media-libs/glew
 	test? ( >=x11-apps/mesa-progs-8.5.0[X] )
 	"
+PATCHES=("${FILESDIR}/${PN}-5.7.1-fix-unaligned-access.patch")
+
 pkg_setup() {
 	export CC=clang CXX=clang++ CPP=clang
 	tc-is-clang || Clang required

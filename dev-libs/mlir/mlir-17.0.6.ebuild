@@ -3,7 +3,7 @@
 
 EAPI=8
 
-ROCM_VERSION=5.7.1
+ROCM_VERSION=6.0.2
 
 PYTHON_COMPAT=( python3_{8..11} )
 inherit rocm cuda cmake-multilib llvm llvm.org python-any-r1
@@ -13,7 +13,7 @@ HOMEPAGE="https://mlir.llvm.org/"
 
 LICENSE="Apache-2.0-with-LLVM-exceptions"
 SLOT="${LLVM_MAJOR}/${LLVM_SOABI}"
-KEYWORDS=""
+KEYWORDS="~amd64 ~arm ~arm64 ~loong ~ppc ~ppc64 ~riscv ~sparc ~x86 ~amd64-linux ~x64-macos"
 IUSE="debug test cuda rocm vulkan spirv"
 RESTRICT="!test? ( test )"
 

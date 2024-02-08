@@ -3,7 +3,7 @@
 
 EAPI=8
 
-ROCM_VERSION=5.7.1
+ROCM_VERSION=6.0.2
 
 PYTHON_COMPAT=( python3_{8..11} )
 inherit rocm cuda cmake-multilib llvm llvm.org python-any-r1

@@ -5,7 +5,7 @@ EAPI=8
 
 PYTHON_COMPAT=( python3_{10..12} )
 
-ROCM_VERSION=6.0.0
+ROCM_VERSION=6.0.2
 
 inherit cmake llvm llvm.org multilib multilib-minimal
 inherit prefix python-single-r1 toolchain-funcs rocm

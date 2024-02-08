@@ -1,0 +1,11 @@
+--- src/core/runtime/amd_blit_sdma.cpp~
++++ src/core/runtime/amd_blit_sdma.cpp
+@@ -149,7 +149,7 @@ hsa_status_t BlitSdma<RingIndexTy, HwIndexMonotonic, SizeToCountOffset, useGCR>:
+   }
+ 
+   // Some GFX9 devices require a minimum of 64 DWORDS per ring buffer submission.
+-  if (agent_->isa()->GetVersion() >= core::Isa::Version(9, 0, 0) &&
++  if (agent_->isa()->GetVersion() > core::Isa::Version(9, 0, 2) &&
+       (agent_->isa()->GetVersion() <= core::Isa::Version(9, 0, 4) ||
+        agent_->isa()->GetVersion() == core::Isa::Version(9, 0, 12))) {
+     min_submission_size_ = 256;

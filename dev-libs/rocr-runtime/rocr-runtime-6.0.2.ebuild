@@ -21,6 +21,8 @@ DESCRIPTION="Radeon Open Compute Runtime"
 HOMEPAGE="https://github.com/RadeonOpenCompute/ROCR-Runtime"
 PATCHES=(
 	"${FILESDIR}/${PN}-4.3.0_no-aqlprofiler.patch"
+	"${FILESDIR}/${PN}-5.7.1-extend-isa-compatibility-check.patch"
+	"${FILESDIR}/${PN}-6.0.0-fix-gfx900.patch"
 )
 
 LICENSE="MIT"
