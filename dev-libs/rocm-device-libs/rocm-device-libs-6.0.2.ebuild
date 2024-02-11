@@ -8,14 +8,15 @@ RESTRICT="strip"
 inherit cmake llvm
 
 LLVM_MAX_SLOT=17
+LLVM_MIN_SLOT=17
 
 if [[ ${PV} == *9999 ]] ; then
-	EGIT_REPO_URI="https://github.com/RadeonOpenCompute/ROCm-Device-Libs/"
+	EGIT_REPO_URI="https://github.com/Mystro256/ROCm-Device-Libs.git"
 	inherit git-r3
 	S="${WORKDIR}/${P}/src"
 else
-	SRC_URI="https://github.com/RadeonOpenCompute/ROCm-Device-Libs/archive/rocm-${PV}.tar.gz -> ${P}.tar.gz"
-	S="${WORKDIR}/ROCm-Device-Libs-rocm-${PV}"
+	SRC_URI="https://github.com/Mystro256/ROCm-Device-Libs/archive/refs/heads/release/${LLVM_MAX_SLOT}.x.tar.gz -> ${P}.tar.gz"
+	S="${WORKDIR}/ROCm-Device-Libs-release-${LLVM_MAX_SLOT}.x"
 	KEYWORDS="~amd64"
 fi
 
@@ -34,7 +35,8 @@ CMAKE_BUILD_TYPE=Release
 
 PATCHES=(
 	"${FILESDIR}/${PN}-5.5.1-fix-llvm-link.patch"
-	"${FILESDIR}/${PN}-6.0.0-gws-feature.patch"
+	"${FILESDIR}/${PN}-6.0.2-revert-install-into-clang.patch"
+	#"${FILESDIR}/${PN}-6.0.0-gws-feature.patch"
 	)
 
 pkg_setup() {
@@ -46,9 +48,9 @@ pkg_setup() {
 }
 
 src_prepare() {
+	cmake_src_prepare
 	sed -e "s:amdgcn/bitcode:lib/amdgcn/bitcode:" -i "${S}/cmake/OCL.cmake" || die
 	sed -e "s:amdgcn/bitcode:lib/amdgcn/bitcode:" -i "${S}/cmake/Packages.cmake" || die
-	cmake_src_prepare
 }
 
 src_configure() {

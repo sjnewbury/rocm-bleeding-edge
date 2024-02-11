@@ -6,14 +6,15 @@ EAPI=8
 inherit cmake llvm prefix
 
 LLVM_MAX_SLOT=17
+LLVM_MIN_SLOT=17
 
 if [[ ${PV} == *9999 ]] ; then
-	EGIT_REPO_URI="https://github.com/RadeonOpenCompute/ROCm-CompilerSupport/"
+	EGIT_REPO_URI="https://github.com/Mystro256/ROCm-CompilerSupport.git"
 	inherit git-r3
 	S="${WORKDIR}/${P}/lib/comgr"
 else
-	SRC_URI="https://github.com/RadeonOpenCompute/ROCm-CompilerSupport/archive/rocm-${PV}.tar.gz -> ${P}.tar.gz"
-	S="${WORKDIR}/ROCm-CompilerSupport-rocm-${PV}/lib/comgr"
+	SRC_URI="https://github.com/Mystro256/ROCm-CompilerSupport/archive/refs/heads/release/${LLVM_MAX_SLOT}.x.tar.gz -> ${P}.tar.gz"
+	S="${WORKDIR}/ROCm-CompilerSupport-release-${LLVM_MAX_SLOT}.x/lib/comgr"
 	KEYWORDS="~amd64"
 fi
 
@@ -24,12 +25,6 @@ PATCHES=(
 	"${FILESDIR}/${PN}-5.1.3-rocm-path.patch"
 	"${FILESDIR}/0001-Specify-clang-exe-path-in-Driver-Creation.patch"
 	"${FILESDIR}/0001-Find-CLANG_RESOURCE_DIR-using-clang-print-resource-d.patch"
-	"${FILESDIR}/${PN}-5.7.0-optional.patch"
-	"${FILESDIR}/${PN}-5.7.0-lld.patch"
-	"${FILESDIR}/${PN}-5.7.0-disassembly.patch"
-	"${FILESDIR}/${PN}-5.7.0-metadata.patch"
-	"${FILESDIR}/${PN}-5.7.0-symbolizer.patch"
-	"${FILESDIR}/${PN}-5.7.1-fix-tests.patch"
 	"${FILESDIR}/${PN}-5.7.1-correct-license-install-dir.patch"
 	#"${FILESDIR}/${PN}-6.0.0-llvm18.patch"
 )

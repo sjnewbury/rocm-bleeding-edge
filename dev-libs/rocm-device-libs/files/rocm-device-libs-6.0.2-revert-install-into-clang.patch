@@ -1,0 +1,76 @@
+From cb5f57b78813c92eacfe0f25cab42eb6b62722e5 Mon Sep 17 00:00:00 2001
+From: Steven Newbury <steve@snewbury.org.uk>
+Date: Sun, 11 Feb 2024 12:56:39 +0000
+Subject: [PATCH] Revert "Install into clang resource directory"
+
+This reverts commit 8a2c8881129dd72d0edd6fe569fdf8489bffc742.
+---
+ cmake/OCL.cmake      |  8 +-------
+ cmake/Packages.cmake | 21 ++++++++++-----------
+ 2 files changed, 11 insertions(+), 18 deletions(-)
+
+diff --git a/cmake/OCL.cmake b/cmake/OCL.cmake
+index dcee35b..fe45b26 100644
+--- a/cmake/OCL.cmake
++++ b/cmake/OCL.cmake
+@@ -48,12 +48,6 @@ set (STRIP_SUFFIX ".strip${BC_EXT}")
+ set (FINAL_SUFFIX "${BC_EXT}")
+ set (INSTALL_ROOT_SUFFIX "amdgcn/bitcode")
+ 
+-# Get clang install directory for installation
+-execute_process (
+-  COMMAND ${LLVM_TOOLS_BINARY_DIR}/clang${EXE_SUFFIX} --print-resource-dir
+-  OUTPUT_VARIABLE CLANG_RESOURCE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
+-
+ # Set `inc_options` to contain Clang command-line for include directories for
+ # current source directory.
+ macro(set_inc_options)
+@@ -174,7 +168,7 @@ macro(opencl_bc_lib)
+     ADDITIONAL_MAKE_CLEAN_FILES "${clean_files}")
+ 
+   install(FILES ${OUTPUT_BC_LIB}
+-    DESTINATION ${CLANG_RESOURCE_DIR}/${INSTALL_ROOT_SUFFIX}
++    DESTINATION ${INSTALL_ROOT_SUFFIX}
+     COMPONENT device-libs)
+ endmacro()
+ 
+diff --git a/cmake/Packages.cmake b/cmake/Packages.cmake
+index 2b374ed..07c60eb 100644
+--- a/cmake/Packages.cmake
++++ b/cmake/Packages.cmake
+@@ -16,21 +16,20 @@ configure_file(AMDDeviceLibsConfig.cmake.in
+   @ONLY)
+ 
+ 
+-if (WIN32)
+-  set(EXE_SUFFIX ".exe")
+-else()
+-  set(EXE_SUFFIX)
+-endif()
+-# Get clang install directory for installation
+-execute_process (
+-  COMMAND ${LLVM_TOOLS_BINARY_DIR}/clang${EXE_SUFFIX} --print-resource-dir
+-  OUTPUT_VARIABLE CLANG_RESOURCE_DIR OUTPUT_STRIP_TRAILING_WHITESPACE
+-)
+ set(install_path_suffix "amdgcn/bitcode")
+ 
+ # Generate the install-tree package.
++# We do not know the absolute path to the intall tree until we are installed,
++# so we calculate it dynamically in AMD_DEVICE_LIBS_PREFIX_CODE and use
++# relative paths in the target imports in AMD_DEVICE_LIBS_TARGET_CODE.
+ set(AMD_DEVICE_LIBS_PREFIX_CODE "
+-set(AMD_DEVICE_LIBS_PREFIX \"${CLANG_RESOURCE_DIR}\")")
++# Derive absolute install prefix from config file path.
++get_filename_component(AMD_DEVICE_LIBS_PREFIX \"\${CMAKE_CURRENT_LIST_FILE}\" PATH)")
++string(REGEX REPLACE "/" ";" count "${PACKAGE_PREFIX}")
++foreach(p ${count})
++  set(AMD_DEVICE_LIBS_PREFIX_CODE "${AMD_DEVICE_LIBS_PREFIX_CODE}
++get_filename_component(AMD_DEVICE_LIBS_PREFIX \"\${AMD_DEVICE_LIBS_PREFIX}\" PATH)")
++endforeach()
+ set(AMD_DEVICE_LIBS_TARGET_CODE)
+ foreach(target ${AMDGCN_LIB_LIST})
+   get_target_property(target_name ${target} ARCHIVE_OUTPUT_NAME)
+-- 
+2.42.1
+
