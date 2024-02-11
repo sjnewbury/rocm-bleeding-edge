@@ -8,36 +8,43 @@ LLVM_MAX_SLOT="17"
 
 inherit llvm cmake rocm
 
-SAFEINT_COMMIT=ff15c6ada150a5018c5ef2172401cb4529eac9c0
+SAFEINT_COMMIT=3.0.28a
 FLATBUFFERS_PV=1.12.0
-DATE_PV=2.4.1
+#DATE_PV=2.4.1
 
 DESCRIPTION="cross-platform, high performance ML inferencing and training accelerator"
 HOMEPAGE="https://github.com/microsoft/onnxruntime"
 SRC_URI="
-	https://github.com/microsoft/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz
 	https://github.com/dcleblanc/SafeInt/archive/${SAFEINT_COMMIT}.tar.gz -> SafeInt-${SAFEINT_COMMIT:0:10}.tar.gz
 	https://github.com/google/flatbuffers/archive/v${FLATBUFFERS_PV}.tar.gz -> flatbuffers-${FLATBUFFERS_PV}.tar.gz
-	https://github.com/HowardHinnant/date/archive/v${DATE_PV}.tar.gz -> hhdate-${DATE_PV}.tar.gz"
+"
+if [[ ${PV} == 9999* ]]; then
+	EGIT_REPO_URI="https://github.com/microsoft/onnxruntime"
+	inherit git-r3
+else
+	KEYWORDS="~amd64"
+	SRC_URI+="https://github.com/microsoft/${PN}/archive/refs/tags/v${PV}.tar.gz -> ${P}.tar.gz"
+fi
+	
 
 LICENSE="MIT"
 SLOT="0"
-KEYWORDS="~amd64"
 IUSE="benchmark test rocm"
 
 RESTRICT="test"
 
 PATCHES=(
-	"${FILESDIR}/re2-pkg-config-r1.patch"
+	"${FILESDIR}/re2-pkg-config-r2.patch"
 	"${FILESDIR}/system-onnx-r1.patch"
-	"${FILESDIR}/system-cpuinfo.patch"
+	"${FILESDIR}/system-cpuinfo-r1.patch"
 	"${FILESDIR}/system-nsync.patch"
-	"${FILESDIR}/system-composable_kernel.patch"
+	"${FILESDIR}/system-composable_kernel-r1.patch"
 	"${FILESDIR}/system-protobuf.patch"
 	"${FILESDIR}/system-mp11.patch"
+	"${FILESDIR}/system-date.patch"
 	"${FILESDIR}/rocm-version-override-r2.patch"
 	"${FILESDIR}/hip-gentoo.patch"
-	"${FILESDIR}/rocblas-half.patch"
+	#"${FILESDIR}/rocblas-half.patch"
 )
 
 S="${WORKDIR}/${P}/cmake"
@@ -82,17 +89,26 @@ pkg_setup() {
 
 	strip-unsupported-flags
 
-	append-cppflags "-I/usr/include/eigen3"
+  	append-cppflags "-I/usr/include/eigen3"
+
 	append-flags "-Wno-error=deprecated-declarations"
 	append-flags "-Wno-error=instantiation-after-specialization"
 	append-flags "-Wno-error=shorten-64-to-32" "-Wno-error=unused-private-field"
+	append-flags "-Wno-error=unused-result"
+}
+
+src_unpack() {
+	default
+	if [[ ${PV} == 9999* ]]; then
+		git-r3_src_unpack
+	fi
 }
 
 src_prepare() {
 	pushd ..
 	eapply "${FILESDIR}/shared-build-fix.patch"
 	eapply "${FILESDIR}/hip-libdir.patch"
-	eapply "${FILESDIR}/composable_kernel-6.patch"
+	eapply "${FILESDIR}/optional-header.patch"
 	popd
 
 	cmake_src_prepare
@@ -109,7 +125,6 @@ src_configure() {
 		-DFETCHCONTENT_FULLY_DISCONNECTED=ON
 		-DFETCHCONTENT_SOURCE_DIR_SAFEINT="${WORKDIR}/SafeInt-${SAFEINT_COMMIT}"
 		-DFETCHCONTENT_SOURCE_DIR_FLATBUFFERS="${WORKDIR}/flatbuffers-${FLATBUFFERS_PV}"
-		-DFETCHCONTENT_SOURCE_DIR_DATE="${WORKDIR}/date-${DATE_PV}"
 		-Donnxruntime_USE_TENSORRT=OFF
 		-Donnxruntime_USE_CUDA=OFF
 		-Donnxruntime_USE_ROCM=$(usex rocm ON OFF)
@@ -117,8 +132,10 @@ src_configure() {
 		-Donnxruntime_BUILD_FOR_NATIVE_MACHINE=ON
 		-Donnxruntime_BUILD_SHARED_LIB=ON
 		-Donnxruntime_USE_FULL_PROTOBUF=OFF
+		-Donnxruntime_DISABLE_RTTI=OFF
 		-DCMAKE_HIP_COMPILER="$(get_llvm_prefix)/bin/clang++"
 		-DCMAKE_HIP_ARCHITECTURES="$(get_amdgpu_flags)"
 	)
+		#-DFETCHCONTENT_SOURCE_DIR_DATE="${WORKDIR}/date-${DATE_PV}"
 	cmake_src_configure
 }

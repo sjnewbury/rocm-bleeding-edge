@@ -9,7 +9,7 @@ inherit cmake rocm
 
 DESCRIPTION="Composable Kernel (CK) library aims to provide a programming model for writing performance critical kernels for machine learning workloads."
 HOMEPAGE="https://github.com/ROCmSoftwarePlatform/composable_kernel"
-COMPOSABLE_KERNEL_COMMIT_HASH=rocm-${PV}
+COMPOSABLE_KERNEL_COMMIT_HASH=5356c4a943a35e74d7cdc69486afcb8703b9a59a #rocm-${PV}
 SRC_URI="https://github.com/ROCmSoftwarePlatform/composable_kernel/archive/${COMPOSABLE_KERNEL_COMMIT_HASH}.tar.gz -> composable_kernel-${COMPOSABLE_KERNEL_COMMIT_HASH}.tar.gz"
 
 LICENSE="MIT"
@@ -30,7 +30,7 @@ S="${WORKDIR}/${PN}-${COMPOSABLE_KERNEL_COMMIT_HASH}"
 PATCHES=(
 	"${FILESDIR}/${PN}-6.0.0-no-tests-or-examples.patch"
 	"${FILESDIR}/sqrtf.patch"
-	"${FILESDIR}/${PN}-6.0.0-restore-gfx900-support.patch"
+	"${FILESDIR}/${PN}-6.0.2-restore-gfx900-support.patch"
 	"${FILESDIR}/${PN}-6.0.0-vanilla-llvm.patch"
 )
 

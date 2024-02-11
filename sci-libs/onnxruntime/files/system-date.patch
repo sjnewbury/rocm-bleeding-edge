@@ -1,0 +1,26 @@
+--- ./external/onnxruntime_external_deps.cmake~	2024-02-09 14:02:05.000000000 +0000
++++ ./external/onnxruntime_external_deps.cmake	2024-02-09 14:06:04.598113867 +0000
+@@ -213,13 +213,16 @@
+ set(ENABLE_DATE_TESTING  OFF CACHE BOOL "" FORCE)
+ set(USE_SYSTEM_TZ_DB  ON CACHE BOOL "" FORCE)
+ 
+-FetchContent_Declare(
+-  date
+-  URL ${DEP_URL_date}
+-  URL_HASH SHA1=${DEP_SHA1_date}
+-  FIND_PACKAGE_ARGS 3...<4 NAMES date
+-)
+-onnxruntime_fetchcontent_makeavailable(date)
++Find_Package(date)
++if (NOT date_FOUND)
++  FetchContent_Declare(
++    date
++    URL ${DEP_URL_date}
++    URL_HASH SHA1=${DEP_SHA1_date}
++    FIND_PACKAGE_ARGS 3...<4 NAMES date
++  )
++  onnxruntime_fetchcontent_makeavailable(date)
++endif()
+ 
+ FetchContent_Declare(
+   mp11
