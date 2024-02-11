@@ -27,3 +27,50 @@
 -  target_compile_definitions(onnxruntime_composable_kernel_includes INTERFACE __fp32__ __fp16__ __bf16__)
 -endif()
 +find_package(composable_kernel REQUIRED)
+--- ./onnxruntime_kernel_explorer.cmake~	2024-02-11 20:27:01.000000000 +0000
++++ ./onnxruntime_kernel_explorer.cmake	2024-02-11 20:28:49.937526254 +0000
+@@ -17,7 +17,8 @@
+   check_language(HIP)
+   set(LANGUAGE HIP)
+   if (onnxruntime_USE_COMPOSABLE_KERNEL)
+-    include(composable_kernel)
++    add_library(composablekernels::device_operations SHARED IMPORTED GLOBAL)
++    set_property(TARGET composablekernels::device_operations PROPERTY IMPORTED_LOCATION "/usr/${CMAKE_INSTALL_LIBDIR}/libdevice_operations.a")
+   endif()
+   if (onnxruntime_USE_HIPBLASLT)
+     find_package(hipblaslt REQUIRED)
+@@ -67,7 +68,7 @@
+   target_compile_definitions(kernel_explorer PRIVATE __HIP_PLATFORM_AMD__=1 __HIP_PLATFORM_HCC__=1)
+   if (onnxruntime_USE_COMPOSABLE_KERNEL)
+     target_compile_definitions(kernel_explorer PRIVATE USE_COMPOSABLE_KERNEL)
+-    target_link_libraries(kernel_explorer PRIVATE onnxruntime_composable_kernel_includes)
++    target_link_libraries(kernel_explorer PRIVATE composablekernels::device_operations)
+   endif()
+   if (onnxruntime_USE_TRITON_KERNEL)
+     target_compile_definitions(kernel_explorer PRIVATE USE_TRITON_KERNEL)
+--- ./onnxruntime_providers_rocm.cmake.orig	2024-02-11 20:32:26.066297796 +0000
++++ ./onnxruntime_providers_rocm.cmake	2024-02-11 20:34:00.486682897 +0000
+@@ -188,20 +188,9 @@
+   endif()
+ 
+   if (onnxruntime_USE_COMPOSABLE_KERNEL)
+-    include(composable_kernel)
+-    target_link_libraries(onnxruntime_providers_rocm PRIVATE
+-      onnxruntime_composable_kernel_includes
+-      # Currently we shall not use composablekernels::device_operations, the target includes all conv dependencies, which
+-      # are extremely slow to compile. Instead, we only link all gemm related objects. See the following directory on
+-      # updating.
+-      # https://github.com/ROCmSoftwarePlatform/composable_kernel/tree/develop/library/src/tensor_operation_instance/gpu
+-      device_gemm_instance
+-      device_gemm_add_fastgelu_instance
+-      device_gemm_fastgelu_instance
+-      device_gemm_splitk_instance
+-      device_gemm_streamk_instance
+-      device_batched_gemm_instance
+-      device_softmax_instance
++    add_library(composablekernels::device_operations SHARED IMPORTED GLOBAL)
++    set_property(TARGET composablekernels::device_operations PROPERTY IMPORTED_LOCATION "/usr/${CMAKE_INSTALL_LIBDIR}/libdevice_operations.a")
++    target_link_libraries(onnxruntime_providers_rocm PRIVATE composablekernels::device_operations
+     )
+     target_compile_definitions(onnxruntime_providers_rocm PRIVATE USE_COMPOSABLE_KERNEL)
+   endif()
