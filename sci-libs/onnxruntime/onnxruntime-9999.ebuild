@@ -44,7 +44,6 @@ PATCHES=(
 	"${FILESDIR}/system-date.patch"
 	"${FILESDIR}/rocm-version-override-r2.patch"
 	"${FILESDIR}/hip-gentoo.patch"
-	#"${FILESDIR}/rocblas-half.patch"
 )
 
 S="${WORKDIR}/${P}/cmake"
@@ -89,8 +88,7 @@ pkg_setup() {
 
 	strip-unsupported-flags
 
-  	append-cppflags "-I/usr/include/eigen3"
-
+	# TODO: remove as warnings are fixed
 	append-flags "-Wno-error=deprecated-declarations"
 	append-flags "-Wno-error=instantiation-after-specialization"
 	append-flags "-Wno-error=shorten-64-to-32" "-Wno-error=unused-private-field"
@@ -133,8 +131,11 @@ src_configure() {
 		-Donnxruntime_BUILD_SHARED_LIB=ON
 		-Donnxruntime_USE_FULL_PROTOBUF=OFF
 		-Donnxruntime_DISABLE_RTTI=OFF
+		-Donnxruntime_USE_PREINSTALLED_EIGEN=ON
+		-Deigen_SOURCE_PATH="/usr/include/eigen3"
 		-DCMAKE_HIP_COMPILER="$(get_llvm_prefix)/bin/clang++"
 		-DCMAKE_HIP_ARCHITECTURES="$(get_amdgpu_flags)"
+		-DCMAKE_INSTALL_INCLUDEDIR="/usr/include"
 	)
 		#-DFETCHCONTENT_SOURCE_DIR_DATE="${WORKDIR}/date-${DATE_PV}"
 	cmake_src_configure
