@@ -26,7 +26,7 @@ BDEPEND=""
 S="${WORKDIR}/hipRAND-rocm-${PV}"
 
 pkg_setup() {
-	export CC=clang CXX=clang++ F77=flang FC=flang CPP=clang
+	export CC=clang CXX=clang++ F77=flang FC=flang
 	tc-is-clang || die Clang required
 	strip-unsupported-flags
 }

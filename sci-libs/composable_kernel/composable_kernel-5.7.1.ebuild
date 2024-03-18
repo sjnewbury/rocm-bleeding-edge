@@ -34,7 +34,9 @@ PATCHES=(
 )
 
 pkg_setup() {
-	export CC=clang CXX=clang++ CPP=clang
+	export CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
+	export AR="$(get_llvm_prefix)/bin/llvm-ranlib" RANLIB="$(get_llvm_prefix)/bin/llvm-ranlib"
+
 	tc-is-clang || die Needs Clang
 	strip-unsupported-flags
 

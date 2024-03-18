@@ -32,7 +32,7 @@ RDEPEND="${DEPEND}
 S="${WORKDIR}"/HIPIFY-rocm-${PV}
 
 pkg_setup() {
-	export CC=clang CXX=clang++ CPP=clang
+	export CC=clang CXX=clang++
 	tc-is-clang || die Not clang
 	
 	strip-unsupported-flags

@@ -28,7 +28,7 @@ S="${WORKDIR}/rocPRIM-rocm-${PV}"
 RESTRICT="!test? ( test )"
 
 pkg_setup() {
-	export CC=clang CXX=clang++ FC=flang F77=flang CPP=clang
+	export CC=clang CXX=clang++ FC=flang F77=flang
 	tc-is-clang || die Clang required
 	strip-unsupported-flags
 }

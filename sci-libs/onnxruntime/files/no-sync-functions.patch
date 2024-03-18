@@ -1,0 +1,26 @@
+--- ./onnxruntime/contrib_ops/cuda/bert/flash_attention/utils.h~	2024-01-31 00:51:05.000000000 +0000
++++ ./onnxruntime/contrib_ops/cuda/bert/flash_attention/utils.h	2024-03-16 09:16:32.471869507 +0000
+@@ -122,7 +122,11 @@
+   template <typename T, typename Operator>
+   static __device__ inline T run(T x, Operator& op) {
+     constexpr int OFFSET = THREADS / 2;
++#ifdef __HIP_PLATFORM_HCC__
++    x = op(x, __shfl_xor(uint32_t(x, OFFSET);
++#else
+     x = op(x, __shfl_xor_sync(uint32_t(-1), x, OFFSET));
++#endif
+     return Allreduce<OFFSET>::run(x, op);
+   }
+ };
+@@ -133,7 +137,11 @@
+ struct Allreduce<2> {
+   template <typename T, typename Operator>
+   static __device__ inline T run(T x, Operator& op) {
++#ifdef __HIP_PLATFORM_HCC__
++    x = op(x, __shfl_xor(x, 1);
++#else
+     x = op(x, __shfl_xor_sync(uint32_t(-1), x, 1));
++#endif
+     return x;
+   }
+ };

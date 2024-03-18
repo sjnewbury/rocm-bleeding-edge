@@ -51,7 +51,7 @@ PATCHES=(
 )
 
 pkg_setup() {
-	export CC=clang CXX=clang++ CPP=clang FC=flang F77=flang
+	export CC=clang CXX=clang++ FC=flang F77=flang
 	tc-is-clang || die Needs Clang
 	strip-unsupported-flags
 }

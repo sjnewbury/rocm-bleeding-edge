@@ -77,7 +77,8 @@ DEPEND="
 "
 
 pkg_setup() {
-	CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
+	export CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
+	export AR="$(get_llvm_prefix)/bin/llvm-ar" RANLIB="$(get_llvm_prefix)/bin/llvm-ranlib"
 	tc-is-clang || die Clang required
 
 	strip-unsupported-flags
@@ -119,6 +120,7 @@ src_configure() {
 		-Donnxruntime_USE_FULL_PROTOBUF=OFF
 		-DCMAKE_HIP_COMPILER="$(get_llvm_prefix)/bin/clang++"
 		-DCMAKE_HIP_ARCHITECTURES="$(get_amdgpu_flags)"
+		-DLLVM_ENABLE_LLD=ON
 	)
 	cmake_src_configure
 }

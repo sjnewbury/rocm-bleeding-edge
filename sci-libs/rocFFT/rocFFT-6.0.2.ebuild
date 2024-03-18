@@ -74,7 +74,7 @@ pkg_setup() {
 	export CHECKREQS_MEMORY=$(required_mem)
 	check-reqs_pkg_setup
 	python_setup
-	export CC=clang CXX=clang++ F77=flang FC=flang CPP=clang
+	export CC=clang CXX=clang++ F77=flang FC=flang
 	tc-is-clang || die Clang required
 	strip-unsupported-flags
 }

@@ -78,7 +78,7 @@ PATCHES=(
 pkg_setup() {
 	LLVM_MAX_SLOT=${LLVM_MAJOR} llvm_pkg_setup
 	python-single-r1_pkg_setup
-	export CC=clang CXX=clang++ CPP=clang LD=ld.lld
+	export CC=clang CXX=clang++ LD=ld.lld
 	tc-is-clang || die Needs Clang
 	strip-unsupported-flags
 

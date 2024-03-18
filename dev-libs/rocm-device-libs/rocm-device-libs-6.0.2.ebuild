@@ -40,7 +40,7 @@ PATCHES=(
 	)
 
 pkg_setup() {
-	export CC=clang CXX=clang++ CPP=clang
+	export CC=clang CXX=clang++
 	tc-is-clang || Clang required
 	strip-unsupported-flags
 	

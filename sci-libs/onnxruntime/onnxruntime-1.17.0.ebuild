@@ -78,11 +78,16 @@ DEPEND="
 "
 
 pkg_setup() {
-	CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
+  	export CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
+	export AR="$(get_llvm_prefix)/bin/llvm-ar" RANLIB="$(get_llvm_prefix)/bin/llvm-ranlib"
+	export LD=ld.lld
+	
 	tc-is-clang || die Clang required
 
 	strip-unsupported-flags
 
+	append-ldflags -fuse-ld=lld
+	
 	# TODO: remove as warnings are fixed
 	append-flags "-Wno-error=deprecated-declarations"
 	append-flags "-Wno-error=instantiation-after-specialization"
@@ -95,6 +100,7 @@ src_prepare() {
 	eapply "${FILESDIR}/shared-build-fix.patch"
 	eapply "${FILESDIR}/hip-libdir.patch"
 	eapply "${FILESDIR}/optional-header.patch"
+	eapply "${FILESDIR}/no-sync-functions.patch"
 	popd
 
 	cmake_src_prepare
@@ -124,6 +130,7 @@ src_configure() {
 		-DCMAKE_HIP_COMPILER="$(get_llvm_prefix)/bin/clang++"
 		-DCMAKE_HIP_ARCHITECTURES="$(get_amdgpu_flags)"
 		-DCMAKE_INSTALL_INCLUDEDIR="/usr/include"
+		-DLLVM_ENABLE_LLD=ON
 	)
 		#-DFETCHCONTENT_SOURCE_DIR_DATE="${WORKDIR}/date-${DATE_PV}"
 	cmake_src_configure
