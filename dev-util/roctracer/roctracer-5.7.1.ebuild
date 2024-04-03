@@ -36,7 +36,7 @@ PATCHES=( "${FILESDIR}"/roctracer-5.7.1-flat-lib-layout.patch
 )
 
 pkg_setup() {
-	export CC=clang CXX=clang++ FC=flang F77=flang
+	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++" FC="$(get_llvm_prefix)/bin/flang" F77="$(get_llvm_prefix)/bin/flang"
 	tc-is-clang || die Clang required
 	strip-unsupported-flags
 }

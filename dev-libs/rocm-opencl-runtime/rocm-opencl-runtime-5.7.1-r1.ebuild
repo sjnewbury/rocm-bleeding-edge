@@ -38,7 +38,7 @@ BDEPEND=">=dev-build/rocm-cmake-5.3
 PATCHES=("${FILESDIR}/${PN}-5.7.1-fix-unaligned-access.patch")
 
 pkg_setup() {
-	export CC=clang CXX=clang++
+	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
 	tc-is-clang || Clang required
 	strip-unsupported-flags
 }

@@ -83,7 +83,7 @@ DEPEND="
 "
 
 pkg_setup() {
-	export CC="$(get_llvm_prefix)/bin/clang" CXX="$(get_llvm_prefix)/bin/clang++"
+	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
 	export AR="$(get_llvm_prefix)/bin/llvm-ar" RANLIB="$(get_llvm_prefix)/bin/llvm-ranlib"
 	tc-is-clang || die Clang required
 

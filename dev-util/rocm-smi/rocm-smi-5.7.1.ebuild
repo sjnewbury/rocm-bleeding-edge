@@ -42,7 +42,7 @@ src_configure() {
 		-DCMAKE_DISABLE_FIND_PACKAGE_LATEX=ON
 		-DFILE_REORG_BACKWARD_COMPATIBILITY=OFF
 	)
-	CXX=clang++ cmake_src_configure
+	CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++" cmake_src_configure
 }
 
 src_install() {

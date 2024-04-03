@@ -30,7 +30,7 @@ S="${WORKDIR}/rccl-rocm-${PV}"
 PATCHES=("${FILESDIR}"/rocm-version.patch)
 
 pkg_setup() {
-	export CC=clang CXX=clang++
+	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
 	tc-is-clang || Clang required
 	strip-unsupported-flags
 	

@@ -33,7 +33,7 @@ RESTRICT="!test? ( test )"
 S=${WORKDIR}/${PN}-rocm-${PV}
 
 pkg_setup() {
-	export CC=clang CXX=clang++ F77=flang FC=flang
+	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++" F77="$(get_llvm_prefix)/bin/flang" FC="$(get_llvm_prefix)/bin/flang"
 	tc-is-clang || die Clang required
 	strip-unsupported-flags
 }

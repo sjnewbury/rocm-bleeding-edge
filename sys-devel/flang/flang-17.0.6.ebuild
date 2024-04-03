@@ -76,9 +76,13 @@ PATCHES=(
 # multilib clang* libraries (not runtime, not wrappers).
 
 pkg_setup() {
-	LLVM_MAX_SLOT=${LLVM_MAJOR} llvm_pkg_setup
+	export LLVM_MAX_SLOT=${LLVM_MAJOR}
+	llvm_pkg_setup
 	python-single-r1_pkg_setup
-	export CC=clang CXX=clang++ LD=ld.lld
+  	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang"
+	export CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
+	export LD="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang"
+	append-flags -fuse-ld=lld
 	tc-is-clang || die Needs Clang
 	strip-unsupported-flags
 

@@ -19,7 +19,7 @@ HOMEPAGE="https://llvm.org/"
 
 LICENSE="Apache-2.0-with-LLVM-exceptions UoI-NCSA MIT"
 SLOT="${LLVM_MAJOR}/${LLVM_SOABI}"
-KEYWORDS=""
+KEYWORDS="~amd64 ~arm ~arm64 ~loong ~ppc ~ppc64 ~riscv ~sparc ~x86 ~amd64-linux ~x64-macos"
 IUSE="debug doc ieee-long-double +pie test xml"
 REQUIRED_USE="${PYTHON_REQUIRED_USE}"
 RESTRICT="!test? ( test )"
@@ -79,8 +79,10 @@ pkg_setup() {
 	export LLVM_MAX_SLOT=${LLVM_MAJOR}
 	llvm_pkg_setup
 	python-single-r1_pkg_setup
-  	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
-	export LD=ld.lld
+  	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang"
+	export CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
+	export LD="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang"
+	append-flags -fuse-ld=lld
 	tc-is-clang || die Needs Clang
 	strip-unsupported-flags
 

@@ -31,7 +31,7 @@ RDEPEND="${DEPEND}
 S="${WORKDIR}"/HIPIFY-rocm-${PV}
 
 pkg_setup() {
-	export CC=clang CXX=clang++
+	export CC="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang" CXX="$(get_llvm_prefix ${LLVM_MAX_SLOT})/bin/clang++"
 	tc-is-clang || die Not clang
 	
 	strip-unsupported-flags
