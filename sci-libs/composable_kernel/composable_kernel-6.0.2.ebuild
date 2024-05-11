@@ -32,6 +32,7 @@ PATCHES=(
 	"${FILESDIR}/sqrtf.patch"
 	"${FILESDIR}/${PN}-6.0.2-restore-gfx900-support.patch"
 	"${FILESDIR}/${PN}-6.0.0-vanilla-llvm.patch"
+	"${FILESDIR}/${PN}-fix_gfx803.patch"
 )
 
 pkg_setup() {
