@@ -5,7 +5,7 @@ EAPI=8
 
 inherit cmake flag-o-matic llvm
 
-LLVM_MAX_SLOT=17
+LLVM_MAX_SLOT=18
 
 if [[ ${PV} == *9999 ]] ; then
 	EGIT_REPO_URI="https://github.com/RadeonOpenCompute/ROCR-Runtime/"
