@@ -1,0 +1,10 @@
+--- ./profile_gemm_add_relu_add_layernorm_impl.hpp.old	2024-05-26 08:14:30.381740494 +1000
++++ ./profile_gemm_add_relu_add_layernorm_impl.hpp	2024-05-26 07:34:37.663000000 +1000
+@@ -161,6 +161,7 @@
+ 
+     switch(init_method)
+     {
++    default: break;
+     case 0: break;
+     case 1:
+         a_m_k.GenerateTensorValue(GeneratorTensor_3<ADataType>{-1, 1});

@@ -35,6 +35,7 @@ PATCHES=(
 	"${FILESDIR}/${PN}-6.0.2-restore-gfx900-support.patch"
 	"${FILESDIR}/${PN}-6.0.0-vanilla-llvm.patch"
 	"${FILESDIR}/fix_gfx803.patch"
+	"${FILESDIR}/fix_ckProfile_profile_gemm_add_relu_add_layernorm.patch"
 )
 
 pkg_setup() {
