@@ -4,6 +4,8 @@
 EAPI=8
 
 ROCM_VERSION=${PV}
+LLVM_MAX_SLOT = "18"
+LLVM_SLOT="18"
 
 inherit cmake rocm
 
