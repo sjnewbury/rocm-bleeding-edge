@@ -1,0 +1,12 @@
+diff -Naru ./include/ck/tensor_operation/gpu/grid/gridwise_tensor_rearrange.hpp.old ./include/ck/tensor_operation/gpu/grid/gridwise_tensor_rearrange.hpp
+--- ./include/ck/tensor_operation/gpu/grid/gridwise_tensor_rearrange.hpp.old	2023-11-14 03:16:04.000000000 +1000
++++ ./include/ck/tensor_operation/gpu/grid/gridwise_tensor_rearrange.hpp	2024-05-08 01:42:27.662000000 +1000
+@@ -51,6 +52,8 @@
+     ignore = out_grid_desc;
+     ignore = p_out_global;
+     ignore = block_2_tile_map;
++    ignore = batch_count;
++    ignore = compute_ptr_offset_of_batch;
+ #endif
+ }
+ 

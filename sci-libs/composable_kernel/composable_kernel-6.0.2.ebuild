@@ -4,6 +4,8 @@
 EAPI=8
 
 ROCM_VERSION=${PV}
+LLVM_MAX_SLOT="18"
+LLVM_SLOT="18"
 
 inherit cmake rocm
 
@@ -32,6 +34,8 @@ PATCHES=(
 	"${FILESDIR}/sqrtf.patch"
 	"${FILESDIR}/${PN}-6.0.2-restore-gfx900-support.patch"
 	"${FILESDIR}/${PN}-6.0.0-vanilla-llvm.patch"
+	"${FILESDIR}/fix_gfx803.patch"
+	"${FILESDIR}/fix_ckProfile_profile_gemm_add_relu_add_layernorm.patch"
 )
 
 pkg_setup() {
